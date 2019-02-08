@@ -9,13 +9,11 @@ import (
 
 // The first stage, gen, is a function that converts a list of integers to a channel that emits the integers in the list.
 func gen(nums ...int) <-chan int {
-	out := make(chan int)
-	go func() {
-		for _, n := range nums {
-			out <- n
-		}
-		close(out)
-	}()
+	out := make(chan int, len(nums)) // use buffered channel to avoid creating new goroutine.
+	for _, n := range nums {
+		out <- n
+	}
+	close(out)
 	return out
 }
 
@@ -47,7 +45,7 @@ func main() {
 
 func merge(cs ...<-chan int) <-chan int {
 	var wg sync.WaitGroup
-	out := make(chan int)
+	out := make(chan int, 1) // enough space for the unread inputs
 
 	// Start an output goroutine for each input channel in cs.  output
 	// copies values from c to out until c is closed, then calls wg.Done.
