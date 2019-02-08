@@ -36,4 +36,10 @@ func main() {
 	// Consume the output.
 	fmt.Println(<-out)
 	fmt.Println(<-out)
+
+
+	// Set up the pipline and consume the output.
+	for n := range sq(sq(gen(2, 3))) {
+		fmt.Println(n)
+	}
 }
