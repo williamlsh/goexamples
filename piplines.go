@@ -37,21 +37,29 @@ func main() {
 	c1 := sq(in)
 	c2 := sq(in)
 
-	// Consume the merged output from c1 and c2.
-	for n := range merge(c1, c2) {
-		fmt.Println(n)
-	}
+	// Consume the first value from output.
+	done := make(chan struct{}, 2)
+	out := merge(done, c1, c2)
+	fmt.Println(<-out)
+
+	// Tell the remianing senders we are leaving.
+	done <- struct{}{}
+	done <- struct{}{}
 }
 
-func merge(cs ...<-chan int) <-chan int {
+func merge(done <-chan struct{}, cs ...<-chan int) <-chan int {
 	var wg sync.WaitGroup
-	out := make(chan int, 1) // enough space for the unread inputs
+	out := make(chan int)
 
 	// Start an output goroutine for each input channel in cs.  output
-	// copies values from c to out until c is closed, then calls wg.Done.
+	// copies values from c to out until c is closed or it receives a value
+	// from done, then calls wg.Done.
 	output := func(c <-chan int) {
 		for n := range c {
-			out <- n
+			select {
+			case out <- n:
+			case <-done: // stop sending to out channel in case of its blocking with non-receiving when main exists
+			}
 		}
 		wg.Done()
 	}
