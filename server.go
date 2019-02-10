@@ -46,6 +46,10 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	results, err := google.Search(ctx, query)
 	elapsed := time.Since(start)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// Render search results.
 	if err := resultsTemplate.Execute(w, struct {
