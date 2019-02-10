@@ -34,8 +34,10 @@ func NewContext(ctx context.Context, userIP net.IP) context.Context {
 	return context.WithValue(ctx, userIPKey, userIP)
 }
 
-// FromContext extracts a userIP from a Context.
+// FromContext extracts the user IP address from ctx, if present.
 func FromContext(ctx context.Context) (net.IP, bool) {
+	// ctx.Value returns nil if ctx has no value for the key;
+	// the net.IP type assertion returns ok=false for nil.
 	userIP, ok := ctx.Value(userIPKey).(net.IP)
 	return userIP, ok
 }
