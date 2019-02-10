@@ -2,6 +2,7 @@ package userip
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 )
@@ -15,13 +16,17 @@ type key int
 // different integer values.
 const userIPKey key = 0
 
-// FromRequest extracts a userIP value from an http.Request
+// FromRequest extracts the user IP address from req, if present.
 func FromRequest(r *http.Request) (net.IP, error) {
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("userip %q is not IP:port", r.RemoteAddr)
 	}
-	return []byte(ip), nil
+	userIP := net.ParseIP(ip)
+	if userIP == nil {
+		return nil, fmt.Errorf("userip %q is not IP:port", r.RemoteAddr)
+	}
+	return userIP, nil
 }
 
 // NewContext returns a new Context that carries a provided userIP value.
