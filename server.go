@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 )
@@ -39,14 +40,19 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
+	// Function scope variables.
+	var (
+		fileSize int             // bytes number of uploaded files
+		p        *multipart.Part // for getting file info at end
+		err      error
+	)
+
 	mr, err := r.MultipartReader()
 	if err != nil {
 		log.Printf("Hit error while opening multipart reader: %s", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	var fileSize int // bytes number of uploaded files
 
 	// buffer to be used for reading bytes from files.
 	chunk := make([]byte, 4096) // 4k size byte slice
@@ -63,7 +69,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	// continue looping through all parts, *multipart.Reader.NextPart() will
 	// return an End of File when all parts have been read.
 	for {
-		p, err := mr.NextPart()
+		p, err = mr.NextPart()
 		if err == io.EOF {
 			// err is io.EOF, files upload completes.
 			log.Printf("Hit last part of multipart upload")
@@ -77,10 +83,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		// at this point the filename and the mimetype is known
-		log.Printf("Uploaded filename: %s\n", p.FileName())
-		log.Printf("Uploaded mimetype: %s\n", p.Header)
 
 		// continue reading the part stream of this loop until either done or err.
 		for {
@@ -105,6 +107,10 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			sum(tempFile)
 		}
 	}
+
+	// at this point the filename and the mimetype is known
+	log.Printf("Uploaded filename: %s\n", p.FileName())
+	log.Printf("Uploaded mimetype: %s\n", p.Header)
 }
 
 func sum(f *os.File) {
