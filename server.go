@@ -113,6 +113,7 @@ func sum(f *os.File) {
 		h := sha256.New()
 		if _, err := io.Copy(h, f); err != nil {
 			log.Printf("unable to hash %q: %s\n", f.Name(), err.Error())
+			return
 		}
 		log.Printf("SHA256 sum of %q: %x\n", f.Name(), h.Sum(nil))
 	}
