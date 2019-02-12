@@ -46,6 +46,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var fileSize int // bytes number of uploaded files
+
 	// buffer to be used for reading bytes from files.
 	chunk := make([]byte, 4096) // 4k size byte slice
 	tempDir := os.TempDir()     // temp dir for chunk files
@@ -96,6 +98,8 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
+			fileSize += n
+			log.Printf("Uploaded filesize: %d bytes\n", fileSize)
 
 			// Log file sum.
 			sum(tempFile)
