@@ -1,3 +1,4 @@
+// Reference: https://peter.bourgon.org/blog/2019/02/12/multipart-http-responses.html
 package main
 
 import (
