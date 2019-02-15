@@ -11,17 +11,18 @@ import (
 )
 
 func TestBlogList(t *testing.T) {
-	req, _ := http.NewRequest(http.MethodGet, "/blogs", nil)
+	req, err := http.NewRequest(http.MethodGet, "/blogs", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	req.Header.Set(headerAccept, jsonapi.MediaType)
 
 	w := httptest.NewRecorder()
+	handler := &ExampleHandler{}
 
 	fmt.Println("============ start list ===========")
-	mux := http.NewServeMux()
-	exampleHandler := &ExampleHandler{}
-	mux.Handle("/blogs", exampleHandler)
-	mux.ServeHTTP(w, req)
+	handler.ServeHTTP(w, req)
 	fmt.Println("============ stop list ===========")
 
 	jsonReply, _ := ioutil.ReadAll(w.Body)
