@@ -10,7 +10,7 @@ import (
 	"github.com/google/jsonapi"
 )
 
-func TestBlogList(t *testing.T) {
+func TestBlogsList(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/blogs", nil)
 	if err != nil {
 		t.Fatal(err)
