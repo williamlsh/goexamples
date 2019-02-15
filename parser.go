@@ -2,9 +2,10 @@
 package main
 
 import (
-	"fmt"
-	"go/scanner"
+	"go/ast"
+	"go/parser"
 	"go/token"
+	"log"
 )
 
 func main() {
@@ -18,17 +19,11 @@ func main() {
 	}
 	`)
 
-	var s scanner.Scanner
 	fset := token.NewFileSet()
-	file := fset.AddFile("", fset.Base(), len(src))
-	s.Init(file, src, nil, 0)
 
-	for {
-		pos, tok, lit := s.Scan()
-		fmt.Printf("%-6s%-8s%q\n", fset.Position(pos), tok, lit)
-
-		if tok == token.EOF {
-			break
-		}
+	file, err := parser.ParseFile(fset, "", src, 0)
+	if err != nil {
+		log.Fatal(err)
 	}
+	ast.Print(fset, file)
 }
