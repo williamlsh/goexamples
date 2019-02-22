@@ -17,7 +17,7 @@ func main() {
 
 	certManager := autocert.Manager{
 		Prompt: autocert.AcceptTOS,
-		Cache:  autocert.DirCache("secret-dir"),
+		Cache:  autocert.DirCache("cert-cache"),
 		// Put your domain here:
 		HostPolicy: autocert.HostWhitelist("example.com"),
 	}
