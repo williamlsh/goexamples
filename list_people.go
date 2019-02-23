@@ -44,7 +44,7 @@ func writePerson(w io.Writer, p *pb.Person) {
 		case pb.Person_WORK:
 			fmt.Fprint(w, "  Work phone #: ")
 		}
-		fmt.Println(w, pn.Number)
+		fmt.Fprintln(w, pn.Number)
 	}
 }
 
