@@ -1,3 +1,5 @@
+// Reference: https://blog.golang.org/docker
+//
 // A outyet web server that announces whether or not a particular Go version
 // has been tagged.
 package main
