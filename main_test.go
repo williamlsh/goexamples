@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 )
 
 // statusHandler is an http.Handler that writes an empty response using itself
@@ -29,5 +32,56 @@ func TestIsTagged(t *testing.T) {
 
 	if !isTagged(s.URL) {
 		t.Fatal("isTagged == false, want true")
+	}
+}
+
+func TestIntegration(t *testing.T) {
+	status := statusHandler(http.StatusNotFound)
+	ts := httptest.NewServer(&status)
+	defer ts.Close()
+
+	// Replace the pollSleep with a closure that we can block and unblock.
+	sleep := make(chan bool)
+	pollSleep = func(time.Duration) {
+		sleep <- true
+		sleep <- true
+	}
+
+	// Replace pollDone with a closure that will tell us when the poller is
+	// exiting.
+	done := make(chan bool)
+	pollDone = func() {
+		done <- true
+	}
+
+	// Put things as they were when the test finishes.
+	defer func() {
+		pollSleep = time.Sleep
+		pollDone = func() {}
+	}()
+
+	// Response will be 404.
+	s := NewServer("1.x", ts.URL, 1*time.Millisecond)
+
+	<-sleep // Wait for poll loop to start sleeping.
+
+	// Make first request to the server.
+	r, _ := http.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, r)
+	if b := w.Body.String(); !strings.Contains(b, "No.") {
+		t.Fatalf("body = %s, want no", b)
+	}
+
+	status = http.StatusOK
+
+	<-sleep // Permit poll loop to stop sleeping.
+	<-done  // Wait for poller to see the "OK" status and exit.
+
+	// Make second request to the server.
+	w = httptest.NewRecorder()
+	s.ServeHTTP(w, r)
+	if b := w.Body.String(); !strings.Contains(b, "YES!") {
+		t.Fatalf("body = %q, want yes", b)
 	}
 }
