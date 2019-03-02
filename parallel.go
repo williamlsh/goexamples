@@ -96,6 +96,7 @@ func MD5All(root string) (map[string][md5.Size]byte, error) {
 		if err := r.err; err != nil {
 			return nil, err
 		}
+		m[r.path] = r.sum
 	}
 	if err := <-errc; err != nil {
 		return nil, err
