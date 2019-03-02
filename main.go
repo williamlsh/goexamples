@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"time"
 
@@ -31,10 +32,24 @@ func main() {
 		Handler: handler,
 	}
 
-	log.Info().Msg("Listening HTTP on: 8080")
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal().Err(err).Msg("error when running http server")
+	go func() {
+		log.Info().Msg("Listening HTTP on: 8080")
+		if err := srv.ListenAndServe(); err != nil {
+			log.Fatal().Err(err).Msg("error when running http server")
+		}
+	}()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
+	<-c
+
+	// We received an interrupt signal, shut down.
+	log.Info().Msg("Shutting down...")
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msg("HTTP server shutdown error")
 	}
+	log.Info().Msg("Server has been stopped")
 }
 
 func TaskHandler(w http.ResponseWriter, r *http.Request) {
