@@ -10,7 +10,7 @@ Current branches lists below:
 
 ```bash
   * master
-  ssh/ssh-client-connection
+  ssh/client-connection
   channel/share_memory_by_communication
   context/multiple-contexts
   docker/basic-deploy
