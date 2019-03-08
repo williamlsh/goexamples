@@ -2,6 +2,16 @@
 
 package goexamples
 
+import (
+	"errors"
+	"fmt"
+	"io"
+	"strconv"
+	"time"
+
+	"github.com/99designs/gqlgen/graphql"
+)
+
 type NewVideo struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -22,12 +32,44 @@ type User struct {
 }
 
 type Video struct {
-	ID          string        `json:"id"`
+	ID          int           `json:"id"`
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
 	User        User          `json:"user"`
 	URL         string        `json:"url"`
-	CreatedAt   Timestamp     `json:"createdAt"`
+	CreatedAt   time.Time     `json:"createdAt"`
 	Screenshots []*Screenshot `json:"screenshots"`
 	Related     []Video       `json:"related"`
+}
+
+// MarshalID redefines basic ID type to int.
+func MarshalID(id int) graphql.Marshaler {
+	return graphql.WriterFunc(func(w io.Writer) {
+		io.WriteString(w, strconv.Quote(fmt.Sprintf("%d", id)))
+	})
+}
+
+func UnmarshalID(v interface{}) (int, error) {
+	id, ok := v.(string)
+	if !ok {
+		return 0, fmt.Errorf("id must be string")
+	}
+
+	i, err := strconv.Atoi(id)
+	return int(i), err
+}
+
+func MarshalTimestamp(t time.Time) graphql.Marshaler {
+	timestamp := t.Unix() * 1000
+
+	return graphql.WriterFunc(func(w io.Writer) {
+		io.WriteString(w, strconv.FormatInt(timestamp, 10))
+	})
+}
+
+func UnmarshalTimepstamp(v interface{}) (time.Time, error) {
+	if tmpStr, ok := v.(int); ok {
+		return time.Unix(int64(tmpStr), 0), nil
+	}
+	return time.Time{}, errors.New("timestamp error")
 }
