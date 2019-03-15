@@ -12,6 +12,10 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
+type key int
+
+const decoded key = 0
+
 type User struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -47,29 +51,29 @@ func createTokenEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(JwtToken{Token: tokenStr})
 }
 
-func protectedEndpoint(w http.ResponseWriter, r *http.Request) {
-	params := r.URL.Query()
-	tok, err := jwt.Parse(params["token"][0], func(tok *jwt.Token) (interface{}, error) {
-		if _, ok := tok.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("there was an error")
-		}
-		return []byte("secret"), nil
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+// func protectedEndpoint(w http.ResponseWriter, r *http.Request) {
+// 	params := r.URL.Query()
+// 	tok, err := jwt.Parse(params["token"][0], func(tok *jwt.Token) (interface{}, error) {
+// 		if _, ok := tok.Method.(*jwt.SigningMethodHMAC); !ok {
+// 			return nil, fmt.Errorf("there was an error")
+// 		}
+// 		return []byte("secret"), nil
+// 	})
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 	}
 
-	if claims, ok := tok.Claims.(jwt.MapClaims); ok && tok.Valid {
-		json.NewEncoder(w).Encode(User{
-			Username: claims["username"].(string),
-			Password: claims["password"].(string),
-		})
-	} else {
-		json.NewEncoder(w).Encode(Exception{
-			Message: "Invalid authorization token.",
-		})
-	}
-}
+// 	if claims, ok := tok.Claims.(jwt.MapClaims); ok && tok.Valid {
+// 		json.NewEncoder(w).Encode(User{
+// 			Username: claims["username"].(string),
+// 			Password: claims["password"].(string),
+// 		})
+// 	} else {
+// 		json.NewEncoder(w).Encode(Exception{
+// 			Message: "Invalid authorization token.",
+// 		})
+// 	}
+// }
 
 func handleJWTValidation(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +96,7 @@ func handleJWTValidation(next http.HandlerFunc) http.HandlerFunc {
 
 				if tok.Valid {
 					ctx := context.Background()
-					val := context.WithValue(ctx, "decoded", tok.Claims)
+					val := context.WithValue(ctx, decoded, tok.Claims)
 					r.WithContext(val)
 				} else {
 					json.NewEncoder(w).Encode(Exception{Message: "Invalid authorization token"})
