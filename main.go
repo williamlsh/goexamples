@@ -8,8 +8,6 @@ import (
 	httptransport "github.com/go-kit/kit/transport/http"
 )
 
-// Transports expose the service to the network. Here we utilize JSON over HTTP.
-
 func main() {
 	logger := log.NewLogfmtLogger(os.Stderr)
 

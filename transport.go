@@ -8,6 +8,8 @@ import (
 	"github.com/go-kit/kit/endpoint"
 )
 
+// Transports expose the service to the network. Here we utilize JSON over HTTP.
+
 // For each method, we define request and response structs, capturing all of the input and output parameters respectively.
 
 type uppercaseRequest struct {
