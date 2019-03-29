@@ -3,37 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/go-kit/kit/endpoint"
 	httptransport "github.com/go-kit/kit/transport/http"
 )
-
-// StringService provides operations on strings.
-type StringService interface {
-	Uppercase(string) (string, error)
-	Count(string) int
-}
-
-// stringService is a concrete implementation of StringService.
-type stringService struct{}
-
-func (stringService) Uppercase(s string) (string, error) {
-	if s == "" {
-		return "", ErrEmpty
-	}
-	return strings.ToUpper(s), nil
-}
-
-func (stringService) Count(s string) int {
-	return len(s)
-}
-
-// ErrEmpty is returned when input string is empty.
-var ErrEmpty = errors.New("Empty string")
 
 // For each method, we define request and response structs, capturing all of the input and output parameters respectively.
 
