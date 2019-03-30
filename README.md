@@ -9,6 +9,10 @@ Generally, every branch is an independent example, examples with different stage
 Current branches lists below:
 
 ```bash
+  go-kit/stringsvc-2
+  go-kit/stringsvc-1
+  gin/basic
+  httprouter/basic
   * master
   jwt
   ssh/tunneling
