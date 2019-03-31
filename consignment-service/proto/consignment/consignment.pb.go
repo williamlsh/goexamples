@@ -4,12 +4,8 @@
 package go_micro_srv_consignment
 
 import (
-	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -279,120 +275,4 @@ var fileDescriptor_e5e5ab05dfa973d5 = []byte{
 	0x22, 0x3d, 0x7c, 0xad, 0x5b, 0x4d, 0xfa, 0x8f, 0x3c, 0xc0, 0xc9, 0x02, 0xad, 0xc7, 0x19, 0x72,
 	0x7d, 0x18, 0xdc, 0xaf, 0xf8, 0xb8, 0xf1, 0xcf, 0x23, 0xf7, 0xc4, 0xef, 0xbe, 0x02, 0x00, 0x00,
 	0xff, 0xff, 0x9d, 0x03, 0x33, 0x7c, 0x09, 0x03, 0x00, 0x00,
-}
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConn
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
-
-// ShippingClient is the client API for Shipping service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type ShippingClient interface {
-	CreateConsignment(ctx context.Context, in *Consignment, opts ...grpc.CallOption) (*Response, error)
-	GetConsignments(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*Response, error)
-}
-
-type shippingClient struct {
-	cc *grpc.ClientConn
-}
-
-func NewShippingClient(cc *grpc.ClientConn) ShippingClient {
-	return &shippingClient{cc}
-}
-
-func (c *shippingClient) CreateConsignment(ctx context.Context, in *Consignment, opts ...grpc.CallOption) (*Response, error) {
-	out := new(Response)
-	err := c.cc.Invoke(ctx, "/go.micro.srv.consignment.Shipping/CreateConsignment", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *shippingClient) GetConsignments(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*Response, error) {
-	out := new(Response)
-	err := c.cc.Invoke(ctx, "/go.micro.srv.consignment.Shipping/GetConsignments", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// ShippingServer is the server API for Shipping service.
-type ShippingServer interface {
-	CreateConsignment(context.Context, *Consignment) (*Response, error)
-	GetConsignments(context.Context, *GetRequest) (*Response, error)
-}
-
-// UnimplementedShippingServer can be embedded to have forward compatible implementations.
-type UnimplementedShippingServer struct {
-}
-
-func (*UnimplementedShippingServer) CreateConsignment(ctx context.Context, req *Consignment) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateConsignment not implemented")
-}
-func (*UnimplementedShippingServer) GetConsignments(ctx context.Context, req *GetRequest) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetConsignments not implemented")
-}
-
-func RegisterShippingServer(s *grpc.Server, srv ShippingServer) {
-	s.RegisterService(&_Shipping_serviceDesc, srv)
-}
-
-func _Shipping_CreateConsignment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Consignment)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ShippingServer).CreateConsignment(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/go.micro.srv.consignment.Shipping/CreateConsignment",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ShippingServer).CreateConsignment(ctx, req.(*Consignment))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Shipping_GetConsignments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ShippingServer).GetConsignments(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/go.micro.srv.consignment.Shipping/GetConsignments",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ShippingServer).GetConsignments(ctx, req.(*GetRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-var _Shipping_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "go.micro.srv.consignment.Shipping",
-	HandlerType: (*ShippingServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "CreateConsignment",
-			Handler:    _Shipping_CreateConsignment_Handler,
-		},
-		{
-			MethodName: "GetConsignments",
-			Handler:    _Shipping_GetConsignments_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto/consignment/consignment.proto",
 }

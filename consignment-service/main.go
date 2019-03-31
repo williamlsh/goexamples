@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	pb "goexamples/consignment-service/proto/consignment"
-	"log"
-	"net"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"github.com/micro/go-micro"
 )
 
 const port = ":50051"
@@ -36,40 +34,39 @@ type service struct {
 	repo IRepository
 }
 
-func (s *service) CreateConsignment(ctx context.Context, in *pb.Consignment) (*pb.Response, error) {
+func (s *service) CreateConsignment(ctx context.Context, req *pb.Consignment, rsp *pb.Response) error {
 	// Save consignment.
-	consignment, err := s.repo.Create(in)
+	consignment, err := s.repo.Create(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &pb.Response{Created: true, Consignment: consignment}, nil
+	rsp.Created = true
+	rsp.Consignment = consignment
+	return nil
 }
 
-func (s *service) GetConsignments(ctx context.Context, in *pb.GetRequest) (*pb.Response, error) {
+func (s *service) GetConsignments(ctx context.Context, in *pb.GetRequest, rsp *pb.Response) error {
 	consignments := s.repo.GetAll()
-	return &pb.Response{Consignments: consignments}, nil
+	rsp.Consignments = consignments
+	return nil
 }
 
 func main() {
 	repo := &Repository{}
 
-	// Setup gRPC server.
-	lis, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v\n", err)
-	}
-	s := grpc.NewServer()
+	srv := micro.NewService(
+		micro.Name("consignment"),
+		micro.Version("latest"),
+		micro.Metadata(map[string]string{
+			"type": "shipping consignment",
+		}),
+	)
 
-	// Register our service with the gRPC server, this will tie our
-	// implementation into the auto-generated interface code for our
-	// protobuf definition.
-	pb.RegisterShippingServer(s, &service{repo: repo})
+	srv.Init()
 
-	// Register reflection service on gRPC server.
-	reflection.Register(s)
-
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v\n", err)
+	pb.RegisterShippingHandler(srv.Server(), &service{repo: repo})
+	if err := srv.Run(); err != nil {
+		fmt.Println(err)
 	}
 }
