@@ -9,12 +9,17 @@ Generally, every branch is an independent example, examples with different stage
 Current branches lists below:
 
 ```bash
+  * master
+  go-kit/profilesvc
+  go-kit/stringsvc-3
+  shippy/part-2
+  shippy/part-1
+  go-micro/service
   go-kit/stringsvc-2
   go-kit/stringsvc-1
   gin/basic
   httprouter/basic
-  * master
-  jwt
+  jwt/simple
   ssh/tunneling
   ssh/client-connection
   channel/share_memory_by_communication
