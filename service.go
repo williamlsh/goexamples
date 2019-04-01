@@ -12,7 +12,7 @@ type Service interface {
 	GetProfile(ctx context.Context, id string) (Profile, error)
 	PutProfile(ctx context.Context, id string, p Profile) error
 	PatchProfile(ctx context.Context, id string, p Profile) error
-	deleteProfile(ctx context.Context, id string) error
+	DeleteProfile(ctx context.Context, id string) error
 	GetAddresses(ctx context.Context, profileID string) ([]Address, error)
 	GetAddress(ctx context.Context, profileID string, addressID string) (Address, error)
 	PostAddress(ctx context.Context, profileID string, a Address) error
