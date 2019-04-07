@@ -10,6 +10,10 @@ Current branches lists below:
 
 ```bash
   * master
+  db/organizing-database-access-3
+  db/organizing-database-access-2
+  db/organizing-database-access-1
+  jwt/auth
   go-kit/profilesvc
   go-kit/stringsvc-3
   shippy/part-2
