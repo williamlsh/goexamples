@@ -30,7 +30,7 @@ Current branches lists below:
   channel/share_memory_by_communication
   context/multiple-contexts
   docker/basic-deploy
-  redis-example
+  redis/example-1
   grpc/helloworld
   protocol-bufffers
   mongo-rest
