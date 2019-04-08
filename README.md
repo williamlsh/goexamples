@@ -10,6 +10,7 @@ Current branches lists below:
 
 ```bash
   * master
+  go-kit/addsvc
   db/organizing-database-access-3
   db/organizing-database-access-2
   db/organizing-database-access-1
