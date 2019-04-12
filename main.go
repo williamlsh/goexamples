@@ -1,4 +1,5 @@
 // Reference: https://www.eclipse.org/paho/clients/golang/.
+// https://github.com/CloudMQTT/go-mqtt-example/blob/master/main.go.
 package main
 
 import (
