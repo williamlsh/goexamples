@@ -1,3 +1,4 @@
+// Reference: https://github.com/williamzion/goexamples/blob/mqtt-go/example-1/main.go
 package main
 
 import (
