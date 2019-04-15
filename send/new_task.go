@@ -37,12 +37,12 @@ func main() {
 
 	// Declare a queue to send to.
 	q, err := ch.QueueDeclare(
-		"hello", // name
-		false,   // durable
-		false,   // delete when unused
-		false,   // exclusive
-		false,   // no-wait
-		nil,     // arguments
+		"task_queue", // name
+		true,         // durable
+		false,        // delete when unused
+		false,        // exclusive
+		false,        // no-wait
+		nil,          // arguments
 	)
 	failOnError(err, "failed to declare a queue")
 
