@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"log"
-	"time"
 
 	"github.com/streadway/amqp"
 )
@@ -70,11 +68,6 @@ func main() {
 	go func() {
 		for d := range msgs {
 			log.Printf("Recevied a message: %s\n", d.Body)
-			dotCount := bytes.Count(d.Body, []byte("."))
-			t := time.Duration(dotCount)
-			time.Sleep(t * time.Second)
-			log.Printf("Done\n")
-			d.Ack(false)
 		}
 	}()
 
