@@ -36,7 +36,7 @@ func main() {
 	msgs, err := ch.Consume(
 		q.Name, // queue
 		"",     // consumer
-		true,   // auto-ack
+		false,  // auto-ack
 		false,  // exclusive
 		false,  // no-local
 		false,  // no-wait
@@ -53,6 +53,7 @@ func main() {
 			t := time.Duration(dotCount)
 			time.Sleep(t * time.Second)
 			log.Printf("Done\n")
+			d.Ack(false)
 		}
 	}()
 
