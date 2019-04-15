@@ -33,6 +33,16 @@ func main() {
 	)
 	failOnError(err, "Failed to declare a queue")
 
+	// Bindings.
+	err = ch.QueueBind(
+		q.Name, // queue name
+		"",     // routing key
+		"logs", // exchange
+		false,
+		nil,
+	)
+	failOnError(err, "failed to bind queue")
+
 	msgs, err := ch.Consume(
 		q.Name, // queue
 		"",     // consumer
