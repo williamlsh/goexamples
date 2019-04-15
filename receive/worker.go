@@ -1,14 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"log"
+	"time"
 
 	"github.com/streadway/amqp"
 )
 
 func failOnError(err error, msg string) {
 	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
+		log.Fatalf("%s: %s\n", msg, err)
 	}
 }
 
@@ -46,7 +48,11 @@ func main() {
 
 	go func() {
 		for d := range msgs {
-			log.Printf("Recevied a message: %s", d.Body)
+			log.Printf("Recevied a message: %s\n", d.Body)
+			dotCount := bytes.Count(d.Body, []byte("."))
+			t := time.Duration(dotCount)
+			time.Sleep(t * time.Second)
+			log.Printf("Done\n")
 		}
 	}()
 
