@@ -16,10 +16,20 @@ func failOnError(err error, msg string) {
 
 func bodyFrom(args []string) string {
 	var s string
-	if len(args) < 2 || os.Args[1] == "" {
+	if len(args) < 3 || os.Args[2] == "" {
 		s = "hello"
 	} else {
 		s = strings.Join(args[1:], "")
+	}
+	return s
+}
+
+func severityFrom(args []string) string {
+	var s string
+	if len(args) < 2 || os.Args[1] == "" {
+		s = "info"
+	} else {
+		s = os.Args[1]
 	}
 	return s
 }
@@ -36,22 +46,22 @@ func main() {
 	defer ch.Close()
 
 	err = ch.ExchangeDeclare(
-		"logs",   // name
-		"fanout", // type
-		true,     // durable
-		false,    // auto-deleted
-		false,    // internal
-		false,    // no-wait
-		nil,      // arguments
+		"logs_direct", // name
+		"direct",      // type
+		true,          // durable
+		false,         // auto-deleted
+		false,         // internal
+		false,         // no-wait
+		nil,           // arguments
 	)
 	failOnError(err, "failed to declare an exchange")
 
 	body := bodyFrom(os.Args)
 	err = ch.Publish(
-		"logs", // exchange
-		"",     // routing key
-		false,  // mandatory
-		false,  // immediate
+		"logs_direct",         // exchange
+		severityFrom(os.Args), // routing key
+		false,                 // mandatory
+		false,                 // immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body:        []byte(body),
