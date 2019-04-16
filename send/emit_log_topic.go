@@ -46,8 +46,8 @@ func main() {
 	defer ch.Close()
 
 	err = ch.ExchangeDeclare(
-		"logs_direct", // name
-		"direct",      // type
+		"logs_topic", // name
+		"topic",      // type
 		true,          // durable
 		false,         // auto-deleted
 		false,         // internal
@@ -58,7 +58,7 @@ func main() {
 
 	body := bodyFrom(os.Args)
 	err = ch.Publish(
-		"logs_direct",         // exchange
+		"logs_topic",         // exchange
 		severityFrom(os.Args), // routing key
 		false,                 // mandatory
 		false,                 // immediate
