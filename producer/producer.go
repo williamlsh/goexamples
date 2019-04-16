@@ -1,3 +1,4 @@
+// Reference: https://github.com/streadway/amqp/blob/master/_examples/simple-producer/producer.go
 package main
 
 import (
