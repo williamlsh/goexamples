@@ -1,3 +1,4 @@
+// Reference: https://www.rabbitmq.com/tutorials/tutorial-one-go.html
 package main
 
 import (
