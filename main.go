@@ -1,3 +1,4 @@
+// Reference: https://www.mongodb.com/blog/post/mongodb-go-driver-tutorial-part-1-connecting-using-bson-and-crud-operations
 package main
 
 import (
