@@ -10,6 +10,17 @@ Current branches lists below:
 
 ```bash
   * master
+  mongodb-go/tutorial-1
+  rabbitmq-go/simple-producer-consumer
+  rabbitmq-go/rpc
+  rabbitmq-go/pubsub
+  rabbitmq-go/topics
+  rabbitmq-go/routing
+  rabbitmq-go/workqueues
+  rabbitmq-go/helloworld
+  mqtt-go/example-2
+  mqtt-go/example-1
+  redis/example-2
   go-kit/addsvc
   db/organizing-database-access-3
   db/organizing-database-access-2
