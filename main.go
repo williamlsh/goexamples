@@ -12,14 +12,14 @@ import (
 
 type Trainer struct {
 	Name string
-	Age  int
+	Age  float64
 	City string
 }
 
 func main() {
 	// Set client options.
 	log.Println("Setting client options.")
-	clientOptions := options.Client().ApplyURI("mongodb://william:fmx34Mn32z39@ds143326.mlab.com:43326/tutorial")
+	clientOptions := options.Client().ApplyURI("mongodb://mongoAdmin:secret@localhost:27017")
 	if err := clientOptions.Validate(); err != nil {
 		log.Fatalf("client options: %s", err)
 	}
@@ -126,7 +126,7 @@ func main() {
 	log.Printf("Deleted %v documents in the trainers collection\n", deleteResult.DeletedCount)
 
 	// Delete entire collection.
-	// collection.Drop()
+	// collection.Drop(context.TODO())
 
 	// Close client connection.
 	log.Println("Got collection handle, attempting to disconnect.")
