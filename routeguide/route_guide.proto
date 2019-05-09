@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package routeguide;
+
+service RouteGuide {
+  rpc GetFeature (Point) returns (Feature) {}
+  rpc ListenFeatures (Rectangle) returns (stream Feature) {}
+  rpc RecordRoute (stream Point) returns (RouteSummary) {}
+  rpc RouteChat (stream RouteNode) returns (stream RouteNode) {}
+}
+
+message Point {
+  int32 latitude = 1;
+  int32 longitude = 2;
+}
