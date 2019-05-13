@@ -60,9 +60,11 @@ type result struct {
 func digester(done <-chan struct{}, paths <-chan string, c chan<- result) {
 	for path := range paths {
 		data, err := ioutil.ReadFile(path)
+		// Pay attention, we don't handle error immediately here, but send it to result channel instead, when receiver ranging from that channel, the error will be handled.
 		select {
 		case c <- result{path, md5.Sum(data), err}:
 		case <-done:
+			// What's going on here is in fact just ignoring the result above, not escaping calculating result. Result still will be calculated but abandoned soon.
 			return
 		}
 	}
@@ -85,6 +87,7 @@ func MD5All(root string) (map[string][md5.Size]byte, error) {
 	wg.Add(numDigesters)
 	for i := 0; i < numDigesters; i++ {
 		go func() {
+			// We don't input wg at parameter, instead we call wg.Done() in the caller goroutine, this will be more simple and readable.
 			digester(done, paths, c)
 			wg.Done()
 		}()
@@ -96,12 +99,14 @@ func MD5All(root string) (map[string][md5.Size]byte, error) {
 
 	m := make(map[string][md5.Size]byte)
 	for r := range c {
+		// Handling error from digester at this place.
 		if r.err != nil {
 			return nil, r.err
 		}
 		m[r.path] = r.sum
 	}
 	// Check whether the Walk failed.
+	// But normally it won't receive error unless done channel is closed, so here is in fact listening for exiting signal.
 	if err := <-errc; err != nil {
 		return nil, err
 	}
