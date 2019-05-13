@@ -6,7 +6,7 @@ import (
 )
 
 func gen(nums ...int) <-chan int {
-	out := make(chan int)
+	out := make(chan int, len(nums))
 	go func() {
 		for _, n := range nums {
 			out <- n
@@ -42,7 +42,7 @@ func main() {
 
 func merge(cs ...<-chan int) <-chan int {
 	var wg sync.WaitGroup
-	out := make(chan int)
+	out := make(chan int, 5)
 
 	output := func(c <-chan int) {
 		for n := range c {
