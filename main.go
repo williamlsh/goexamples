@@ -34,10 +34,8 @@ func main() {
 	c1 := sq(in)
 	c2 := sq(in)
 
-	// Consume the merged output from c1 and c2.
-	for n := range merge(c1, c2) {
-		fmt.Println(n)
-	}
+	out := merge(c1, c2)
+	fmt.Println(<-out)
 }
 
 func merge(cs ...<-chan int) <-chan int {
