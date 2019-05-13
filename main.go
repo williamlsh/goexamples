@@ -37,7 +37,7 @@ func sq(done <-chan struct{}, in <-chan int) <-chan int {
 }
 
 func main() {
-	done := make(chan struct{}, 6)
+	done := make(chan struct{})
 	defer close(done)
 
 	in := gen(done, 1, 2, 3, 4, 5, 6)
