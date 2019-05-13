@@ -13,9 +13,9 @@ func gen(done <-chan struct{}, nums ...int) <-chan int {
 			select {
 			case out <- n:
 			case <-done:
+				return
 			}
 		}
-		close(out)
 	}()
 	return out
 }
