@@ -31,7 +31,6 @@ func sq(done <-chan struct{}, in <-chan int) <-chan int {
 				return
 			}
 		}
-		close(out)
 	}()
 	return out
 }
