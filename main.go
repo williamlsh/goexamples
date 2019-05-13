@@ -5,22 +5,31 @@ import (
 	"sync"
 )
 
-func gen(nums ...int) <-chan int {
-	out := make(chan int, len(nums))
+func gen(done <-chan struct{}, nums ...int) <-chan int {
+	out := make(chan int)
 	go func() {
+		defer close(out)
 		for _, n := range nums {
-			out <- n
+			select {
+			case out <- n:
+			case <-done:
+			}
 		}
 		close(out)
 	}()
 	return out
 }
 
-func sq(in <-chan int) <-chan int {
+func sq(done <-chan struct{}, in <-chan int) <-chan int {
 	out := make(chan int)
 	go func() {
+		defer close(out)
 		for n := range in {
-			out <- n * n
+			select {
+			case out <- n * n:
+			case <-done:
+				return
+			}
 		}
 		close(out)
 	}()
@@ -28,25 +37,32 @@ func sq(in <-chan int) <-chan int {
 }
 
 func main() {
-	in := gen(1, 2, 3, 4, 5, 6)
+	done := make(chan struct{}, 6)
+	defer close(done)
+
+	in := gen(done, 1, 2, 3, 4, 5, 6)
 
 	// Distribute the sq work across two goroutines that both read from in.
-	c1 := sq(in)
-	c2 := sq(in)
+	c1 := sq(done, in)
+	c2 := sq(done, in)
 
-	out := merge(c1, c2)
+	out := merge(done, c1, c2)
 	fmt.Println(<-out)
 }
 
-func merge(cs ...<-chan int) <-chan int {
+func merge(done <-chan struct{}, cs ...<-chan int) <-chan int {
 	var wg sync.WaitGroup
-	out := make(chan int, 5)
+	out := make(chan int)
 
 	output := func(c <-chan int) {
+		defer wg.Done()
 		for n := range c {
-			out <- n
+			select {
+			case out <- n:
+			case <-done:
+				return
+			}
 		}
-		wg.Done()
 	}
 	wg.Add(len(cs))
 	for _, c := range cs {
