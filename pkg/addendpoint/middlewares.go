@@ -1,4 +1,4 @@
-package addendpoints
+package addendpoint
 
 import (
 	"context"
