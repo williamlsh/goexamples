@@ -1,27 +1,24 @@
-package http
+package addtransport
 
 import (
 	"context"
 	"encoding/json"
-	"goexamples/pkg/addendpoints"
+	"goexamples/pkg/addendpoint"
 	"goexamples/pkg/addservice"
 	"net/http"
 
-	"github.com/go-kit/kit/tracing/opentracing"
-
-	"github.com/gorilla/mux"
-
-	"github.com/go-kit/kit/tracing/zipkin"
-
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/tracing/opentracing"
+	"github.com/go-kit/kit/tracing/zipkin"
 	httptransport "github.com/go-kit/kit/transport/http"
+	"github.com/gorilla/mux"
 	stdopentracing "github.com/opentracing/opentracing-go"
 	stdzipkin "github.com/openzipkin/zipkin-go"
 )
 
 // NewHTTPHandler returns an HTTP handler that makes a set of endpoints
 // available on predefined paths.
-func NewHTTPHandler(endpoints addendpoints.Set, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer, logger log.Logger) http.Handler {
+func NewHTTPHandler(endpoints addendpoint.Set, otTracer stdopentracing.Tracer, zipkinTracer *stdzipkin.Tracer, logger log.Logger) http.Handler {
 	zipkinServer := zipkin.HTTPServerTrace(zipkinTracer)
 
 	options := []httptransport.ServerOption{
@@ -66,7 +63,7 @@ type errorWrapper struct {
 }
 
 func decodeHTTPSumRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var req addendpoints.SumRequest
+	var req addendpoint.SumRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	return req, err
 }
@@ -77,7 +74,7 @@ func encodeHTTPSumResponse(_ context.Context, w http.ResponseWriter, response in
 }
 
 func decodeHTTPConcatRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var req addendpoints.ConcatRequest
+	var req addendpoint.ConcatRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	return req, err
 }
