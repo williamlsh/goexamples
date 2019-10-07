@@ -27,7 +27,7 @@ services:
     build:
       context: consumer-mongodb
     environment:
-      mongoURL: mongodb://mongo-db:27017
+      mongoURL: mongodb://mongodb:27017
       dbName: example_db
       collectionName: example_coll
       kafkaURL: kafka:9092
@@ -35,7 +35,7 @@ services:
       GroupID: mongo-group
     depends_on:
       - kafka
-      - mongo-db
+      - mongodb
 
   consumer-logger:
     build:
