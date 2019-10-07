@@ -36,6 +36,7 @@ services:
     depends_on:
       - kafka
       - mongodb
+    restart: always
 
   consumer-logger:
     build:
@@ -46,6 +47,7 @@ services:
       GroupID: logger-group
     depends_on:
       - kafka
+    restart: always
 
   producer-random:
     build:
@@ -55,6 +57,7 @@ services:
       topic: topic1
     depends_on:
       - kafka
+    restart: always
 
   producer-api:
     build:
@@ -66,3 +69,4 @@ services:
       - "8080:8080"
     depends_on:
       - kafka
+    restart: always
