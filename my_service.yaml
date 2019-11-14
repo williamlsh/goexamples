@@ -1,0 +1,8 @@
+type: google.api.Service
+config_version: 3
+
+http:
+  rules:
+    - selector: example.MyService.Echo
+      post: /v1/example/echo
+      body: "*"
