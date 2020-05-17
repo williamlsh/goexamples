@@ -11,12 +11,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	w.Write([]byte("hello"))
+	origStdout := os.Stdout
+	os.Stdout = w
 	
-	buf := make([]byte, len([]byte("hello")))
+	fmt.Print("Hello to stdout")
+	
+	buf := make([]byte, len([]byte("Hello to stdout")))
 	n, err := r.Read(buf)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(string(buf[:n]))
+	
+	// Restore original stdout.
+	os.Stdout = origStdout
+	fmt.Println("Written to stdout: ", string(buf[:n]))
 }
