@@ -14,7 +14,10 @@ func main() {
 	origStdout := os.Stdout
 	os.Stdout = w
 	
-	fmt.Print("Hello to stdout")
+	// This exceeds sys pipe buffers limit, see 'man pipe'
+	for i := 0; i < 5000; i++ {
+		fmt.Print("Hello to stdout")
+	}
 	
 	buf := make([]byte, len([]byte("Hello to stdout")))
 	n, err := r.Read(buf)
