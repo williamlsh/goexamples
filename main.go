@@ -1,31 +1,108 @@
+// Origin: https://eli.thegreenplace.net/2020/faking-stdin-and-stdout-in-go/
+
 package main
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 )
 
-func main() {
-	r, w, err := os.Pipe()
+type FakeStdio struct {
+	origStdout   *os.File
+	stdoutReader *os.File
+	
+	outCh chan []byte
+	
+	origStdin   *os.File
+	stdinWriter *os.File
+}
+
+func New(stdinText string) (*FakeStdio, error) {
+	stdinReader, stdinWriter, err := os.Pipe()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
+	
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	
+	origStdin := os.Stdin
+	os.Stdin = stdinReader
+	
+	_, err = stdinWriter.Write([]byte(stdinText))
+	if err != nil {
+		stdinWriter.Close()
+		os.Stdin = origStdin
+		return nil, err
+	}
+	
 	origStdout := os.Stdout
-	os.Stdout = w
+	os.Stdout = stdoutWriter
 	
-	// This exceeds sys pipe buffers limit, see 'man pipe'
-	for i := 0; i < 5000; i++ {
-		fmt.Print("Hello to stdout")
+	outCh := make(chan []byte)
+	
+	go func() {
+		var b bytes.Buffer
+		if _, err := io.Copy(&b, stdoutReader); err != nil {
+			log.Println(err)
+		}
+		outCh <- b.Bytes()
+	}()
+	
+	return &FakeStdio{
+		origStdout:   origStdout,
+		stdoutReader: stdoutReader,
+		outCh:        outCh,
+		origStdin:    origStdin,
+		stdinWriter:  stdinWriter,
+	}, nil
+}
+
+func (sf *FakeStdio) ReadAndRestore() ([]byte, error) {
+	if sf.stdoutReader == nil {
+		return nil, errors.New("ReadAndRestore from closed FakeStdio")
 	}
 	
-	buf := make([]byte, len([]byte("Hello to stdout")))
-	n, err := r.Read(buf)
+	os.Stdout.Close()
+	out := <-sf.outCh
+	
+	os.Stdout = sf.origStdout
+	os.Stdin = sf.origStdin
+	
+	if sf.stdoutReader != nil {
+		sf.stdoutReader.Close()
+		sf.stdoutReader = nil
+	}
+	
+	if sf.stdinWriter != nil {
+		sf.stdinWriter.Close()
+		sf.stdinWriter = nil
+	}
+	
+	return out, nil
+}
+
+func main() {
+	fs, err := New("Input text")
 	if err != nil {
 		log.Fatal(err)
 	}
 	
-	// Restore original stdout.
-	os.Stdout = origStdout
-	fmt.Println("Written to stdout: ", string(buf[:n]))
+	var scanned string
+	fmt.Scanf("%s", &scanned)
+	
+	fmt.Print("Some output")
+	
+	b, err := fs.ReadAndRestore()
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	fmt.Printf("Scanned: %q, Captured: %q", scanned, string(b))
 }
