@@ -1,10 +1,15 @@
-FROM golang:1.14-alpine AS build
+FROM --platform=${BUILDPLATFORM} golang:1.14-alpine AS build
 
 WORKDIR /src
 
+ENV CGO_ENABLED=0
+
 COPY . .
 
-RUN go build -o /out/example .
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /out/example .
 
 FROM scratch AS bin
 
