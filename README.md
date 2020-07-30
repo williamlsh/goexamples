@@ -16,7 +16,12 @@ Generally, every branch is an independent example, examples with different stage
 Current branches lists below(`git for-each-ref --sort=-committerdate refs/heads/`):
 
 ```bash
-61b7079e186a38a57302e0d9a0c7a2827e111f5a commit refs/heads/master
+3b99a9035c37fc581519aa04c6a41b8dbdadda24 commit refs/heads/multidomain-http-request
+e9cfea93a5b20c5fa313680b9395e64248ad635d commit refs/heads/cron
+58edf3f53f9a634fcfdf9ae0155cb391b0f02793 commit refs/heads/go-env-series-part1
+73d13e84921384aa1744042232c56111e42df5e1 commit refs/heads/tcp-server-shutdown
+793d755e48d92fef5b1dff2ee226f4e7d68892a1 commit refs/heads/faking-io
+d999951cb9778a0a842333647ae5b472c477160c commit refs/heads/master
 a1fb967d2e74e3f7df8837b4bf4ee1c0c58ad8b4 commit refs/heads/cockroachdb
 881bb04ff00348e26f2a9cf3eae7722a427b7a34 commit refs/heads/makefile-tutorial
 008fa359342b6e01ecc46c6358ad6ebcb4297007 commit refs/heads/http-proto
