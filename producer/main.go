@@ -31,9 +31,19 @@ func main() {
 func getKafkaWriter(kafkaURL, topic string) *kafka.Writer {
 	brokers := strings.Split(kafkaURL, ",")
 	return &kafka.Writer{
-		Addr:  kafka.TCP(brokers...),
-		Topic: topic,
+		Addr:         kafka.TCP(brokers...),
+		Topic:        topic,
 		RequiredAcks: kafka.RequireAll,
+		Async:        true,
+		Completion: func(messages []kafka.Message, err error) {
+			if err != nil {
+				fmt.Printf("Kafka could not write message: %v\n", err)
+				return
+			}
+			for _, msg := range messages {
+				fmt.Printf("message at topic:%v partition:%v offset:%v	%s = %s\n", msg.Topic, msg.Partition, msg.Offset, msg.Key, msg.Value)
+			}
+		},
 	}
 }
 
@@ -57,6 +67,5 @@ func producerHandler(kafkaWriter *kafka.Writer) func(http.ResponseWriter, *http.
 			io.WriteString(w, fmt.Sprintf("Kafka could not write message: %v", err))
 			fmt.Printf("Kafka could not write message: %v", err)
 		}
-		fmt.Printf("Kafka wrote a message: %s\n", body)
 	}
 }
