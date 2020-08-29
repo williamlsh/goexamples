@@ -57,6 +57,6 @@ func producerHandler(kafkaWriter *kafka.Writer) func(http.ResponseWriter, *http.
 			io.WriteString(w, fmt.Sprintf("Kafka could not write message: %v", err))
 			fmt.Printf("Kafka could not write message: %v", err)
 		}
-		fmt.Printf("Kafka wrote a message: %s", body)
+		fmt.Printf("Kafka wrote a message: %s\n", body)
 	}
 }
