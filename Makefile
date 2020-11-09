@@ -1,11 +1,15 @@
-.PHONY: all build down
+HTTP_PROXY?=""
+
+.PHONY: all build down logs
 
 all: build
-	@sudo docker-compose up --build -d
+	@docker-compose up -d
 
 build:
-	@go build -o hotrod-linux-amd64 .
+	@COMPOSE_DOCKER_CLI_BUILD=1 docker-compose build --build-arg HTTP_PROXY=${HTTP_PROXY}
 
 down:
-	@sudo docker-compose down -v
-	@rm hotrod-linux-amd64
+	@docker-compose down -v
+
+logs:
+	@docker-compose logs -f hotrod
