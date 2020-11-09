@@ -60,6 +60,7 @@ func (s *Server) createServeMux() http.Handler {
 	p := path.Join("/", s.basepath)
 	mux.Handle(p, http.StripPrefix(p, http.FileServer(s.assetFS)))
 	mux.Handle(path.Join(p, "/config"), http.HandlerFunc(s.config))
+	mux.Handle(path.Join(p, "/dispatch"), http.HandlerFunc(s.dispatch))
 	return mux
 }
 
