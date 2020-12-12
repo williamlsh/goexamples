@@ -1,3 +1,4 @@
+// Reference: https://eli.thegreenplace.net/2020/graceful-shutdown-of-a-tcp-server-in-go/
 package shutdown2
 
 import (
@@ -36,7 +37,7 @@ func (s *Server) stop() {
 
 func (s *Server) serve() {
 	defer s.wg.Done()
-	
+
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
@@ -58,7 +59,7 @@ func (s *Server) serve() {
 
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
-	
+
 	buf := make([]byte, 2048)
 ReadLoop:
 	for {
