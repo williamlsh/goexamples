@@ -1,3 +1,4 @@
+// https://github.com/nhooyr/websocket/blob/master/examples/chat/main.go
 package main
 
 import (
