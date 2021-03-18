@@ -1,0 +1,10 @@
+[2021-03-18 09:23:56.786] [INFO] [peer.go:147] => Peer join session peer_id=ckmeo29cw000101745x1gayfr session_id="test room" v=0
+[2021-03-18 09:23:56.786] [INFO] [peer.go:160] => Peer got offer peer_id=ckmeo29cw000101745x1gayfr v=0
+[2021-03-18 09:23:56.788] [INFO] [peer.go:171] => Peer send answer peer_id=ckmeo29cw000101745x1gayfr v=0
+[2021-03-18 09:23:56.789] [INFO] [peer.go:204] => Peer trickle peer_id=ckmeo29cw000101745x1gayfr v=0
+[2021-03-18 09:23:56.789] [INFO] [peer.go:204] => Peer trickle peer_id=ckmeo29cw000101745x1gayfr v=0
+[2021-03-18 09:23:56.789] [INFO] [peer.go:204] => Peer trickle peer_id=ckmeo29cw000101745x1gayfr v=0
+[2021-03-18 09:23:56.789] [INFO] [peer.go:204] => Peer trickle peer_id=ckmeo29cw000101745x1gayfr v=0
+[2021-03-18 09:23:56.789] [INFO] [peer.go:204] => Peer trickle peer_id=ckmeo29cw000101745x1gayfr v=0
+[2021-03-18 09:23:56.792] [INFO] [session.go:50] => RemovePeer from session peer_id=ckmeo29cw000101745x1gayfr session_id="test room" v=0
+[2021-03-18 09:23:57.036] [ERROR] [peer.go:104] => CreateOffer error error="InvalidStateError: connection closed"

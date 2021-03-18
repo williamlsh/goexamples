@@ -7,23 +7,13 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/url"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/pion/mediadevices"
-	"github.com/pion/mediadevices/pkg/codec/vpx"
-	"github.com/pion/mediadevices/pkg/frame"
-	"github.com/pion/mediadevices/pkg/prop"
 	"github.com/pion/webrtc/v3"
 	"github.com/sourcegraph/jsonrpc2"
-
-	// Note: If you don't have a camera or microphone or your adapters are not supported,
-	//       you can always swap your adapters with our dummy adapters below.
-	// _ "github.com/pion/mediadevices/pkg/driver/videotest"
-	// _ "github.com/pion/mediadevices/pkg/driver/audiotest"
-	_ "github.com/pion/mediadevices/pkg/driver/camera"     // This is required to register camera adapter
-	_ "github.com/pion/mediadevices/pkg/driver/microphone" // This is required to register microphone adapter
 )
 
 type Candidate struct {
@@ -64,7 +54,6 @@ type Response struct {
 
 var peerConnection *webrtc.PeerConnection
 var connectionID uint64
-var remoteDescription *webrtc.SessionDescription
 
 var addr string
 
@@ -81,36 +70,13 @@ func main() {
 	}
 	defer c.Close()
 
-	config := webrtc.Configuration{
+	peerConnection, err := webrtc.NewPeerConnection(webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
 			{
 				URLs: []string{"stun:stun.l.google.com:19302"},
 			},
-			/*{
-				URLs:       []string{"turn:TURN_IP:3478"},
-				Username:   "username",
-				Credential: "password",
-			},*/
 		},
-		SDPSemantics: webrtc.SDPSemanticsUnifiedPlanWithFallback,
-	}
-
-	// Create a new RTCPeerConnection
-	mediaEngine := webrtc.MediaEngine{}
-
-	vpxParams, err := vpx.NewVP8Params()
-	if err != nil {
-		panic(err)
-	}
-	vpxParams.BitRate = 500_000 // 500kbps
-
-	codecSelector := mediadevices.NewCodecSelector(
-		mediadevices.WithVideoEncoders(&vpxParams),
-	)
-
-	codecSelector.Populate(&mediaEngine)
-	api := webrtc.NewAPI(webrtc.WithMediaEngine(&mediaEngine))
-	peerConnection, err = api.NewPeerConnection(config)
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -120,35 +86,38 @@ func main() {
 
 	go readMessage(c, done)
 
-	fmt.Println(mediadevices.EnumerateDevices())
+	// Open a UDP Listener for RTP Packets on port 5004
+	listener, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 9004})
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		if err = listener.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
-	s, err := mediadevices.GetUserMedia(mediadevices.MediaStreamConstraints{
-		Video: func(c *mediadevices.MediaTrackConstraints) {
-			c.FrameFormat = prop.FrameFormat(frame.FormatYUY2)
-			c.Width = prop.Int(640)
-			c.Height = prop.Int(480)
-		},
-		Codec: codecSelector,
-	})
-
+	// Create a video track
+	videoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
+	if err != nil {
+		panic(err)
+	}
+	rtpSender, err := peerConnection.AddTrack(videoTrack)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, track := range s.GetTracks() {
-		track.OnEnded(func(err error) {
-			fmt.Printf("Track (ID: %s) ended with error: %v\n",
-				track.ID(), err)
-		})
-		_, err = peerConnection.AddTransceiverFromTrack(track,
-			webrtc.RtpTransceiverInit{
-				Direction: webrtc.RTPTransceiverDirectionSendonly,
-			},
-		)
-		if err != nil {
-			panic(err)
+	// Read incoming RTCP packets
+	// Before these packets are returned they are processed by interceptors. For things
+	// like NACK this needs to be called.
+	go func() {
+		rtcpBuf := make([]byte, 1500)
+		for {
+			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+				return
+			}
 		}
-	}
+	}()
 
 	// Creating WebRTC offer
 	offer, err := peerConnection.CreateOffer(nil)
@@ -222,6 +191,21 @@ func main() {
 	messageBytes := reqBodyBytes.Bytes()
 	c.WriteMessage(websocket.TextMessage, messageBytes)
 
+	go func() {
+		// Read RTP packets forever and send them to the WebRTC Client
+		inboundRTPPacket := make([]byte, 1600) // UDP MTU
+		for {
+			n, _, err := listener.ReadFrom(inboundRTPPacket)
+			if err != nil {
+				panic(fmt.Sprintf("error during read: %s", err))
+			}
+
+			if _, err = videoTrack.Write(inboundRTPPacket[:n]); err != nil {
+				panic(err)
+			}
+		}
+	}()
+
 	<-done
 }
 
@@ -241,48 +225,9 @@ func readMessage(connection *websocket.Conn, done chan struct{}) {
 
 		if response.Id == connectionID {
 			result := *response.Result
-			remoteDescription = response.Result
 			if err := peerConnection.SetRemoteDescription(result); err != nil {
 				log.Fatal(err)
 			}
-		} else if response.Id != 0 && response.Method == "offer" {
-			peerConnection.SetRemoteDescription(*response.Params)
-			answer, err := peerConnection.CreateAnswer(nil)
-
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			peerConnection.SetLocalDescription(answer)
-
-			connectionUUID := uuid.New()
-			connectionID = uint64(connectionUUID.ID())
-
-			offerJSON, err := json.Marshal(&SendAnswer{
-				Answer: peerConnection.LocalDescription(),
-				SID:    "test room",
-			})
-			if err != nil {
-				panic(err)
-			}
-
-			params := (*json.RawMessage)(&offerJSON)
-
-			answerMessage := &jsonrpc2.Request{
-				Method: "answer",
-				Params: params,
-				ID: jsonrpc2.ID{
-					IsString: false,
-					Str:      "",
-					Num:      connectionID,
-				},
-			}
-
-			reqBodyBytes := new(bytes.Buffer)
-			json.NewEncoder(reqBodyBytes).Encode(answerMessage)
-
-			messageBytes := reqBodyBytes.Bytes()
-			connection.WriteMessage(websocket.TextMessage, messageBytes)
 		} else if response.Method == "trickle" {
 			var trickleResponse TrickleResponse
 
