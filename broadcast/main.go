@@ -80,6 +80,14 @@ func main() { // nolint:gocognit
 			}
 		})
 
+		peerConnection.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
+			fmt.Printf("Connection State has changed %s \n", connectionState.String())
+		})
+
+		peerConnection.OnICEGatheringStateChange(func(gathererState webrtc.ICEGathererState) {
+			fmt.Printf("Gathering State has changed %s \n", gathererState.String())
+		})
+
 		// Set the remote SessionDescription
 		err = peerConnection.SetRemoteDescription(offer)
 		if err != nil {
@@ -108,7 +116,7 @@ func main() { // nolint:gocognit
 
 		// Get the LocalDescription and take it to base64 so we can paste in browser
 		// fmt.Println(signalling.Encode(*peerConnection.LocalDescription()))
-		answerStr := signalling.Encode(peerConnection.LocalDescription())
+		answerStr := signalling.Encode(*peerConnection.LocalDescription())
 		signalling.HTTPSDPClient(answerStr, 8081)
 		fmt.Println("Answered to pusher peer")
 

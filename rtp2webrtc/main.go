@@ -28,7 +28,9 @@ func main() {
 		signalling.Decode(<-sdpChan, &answer)
 		fmt.Println("Recv answer from broadcasting peer")
 
-		peerConnection.SetRemoteDescription(answer)
+		if peerConnection.SetRemoteDescription(answer); err != nil {
+			panic(err)
+		}
 	}()
 
 	// Open a UDP Listener for RTP Packets on port 5004
@@ -52,23 +54,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	// Read incoming RTCP packets
-	// Before these packets are returned they are processed by interceptors. For things
-	// like NACK this needs to be called.
-	go func() {
-		rtcpBuf := make([]byte, 1500)
-		for {
-			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
-				return
-			}
-		}
-	}()
+	processRTCP(rtpSender)
 
 	// Set the handler for ICE connection state
 	// This will notify you when the peer has connected/disconnected
 	peerConnection.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
 		fmt.Printf("Connection State has changed %s \n", connectionState.String())
+	})
+
+	peerConnection.OnICEGatheringStateChange(func(gathererState webrtc.ICEGathererState) {
+		fmt.Printf("Gathering State has changed %s \n", gathererState.String())
 	})
 
 	// Wait for the offer to be pasted
@@ -98,12 +93,12 @@ func main() {
 		panic(err)
 	}
 
-	offerStr := signalling.Encode(peerConnection.LocalDescription())
+	offerStr := signalling.Encode(*peerConnection.LocalDescription())
 	signalling.HTTPSDPClient(offerStr, 8080)
 	fmt.Println("Sent offer to broadcasting peer")
 
 	// Create channel that is blocked until ICE Gathering is complete
-	// gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
+	gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
 
 	// Sets the LocalDescription, and starts our UDP listeners
 	// if err = peerConnection.SetLocalDescription(answer); err != nil {
@@ -113,13 +108,14 @@ func main() {
 	// Block until ICE Gathering is complete, disabling trickle ICE
 	// we do this because we only can exchange one signaling message
 	// in a production application you should exchange ICE Candidates via OnICECandidate
-	// <-gatherComplete
+	<-gatherComplete
 
 	// Output the answer in base64 so we can paste it in browser
 	// fmt.Println(signalling.Encode(*peerConnection.LocalDescription()))
 
 	// Read RTP packets forever and send them to the WebRTC Client
 	inboundRTPPacket := make([]byte, 1600) // UDP MTU
+	fmt.Println("Sending RTP packets")
 	for {
 		n, _, err := listener.ReadFrom(inboundRTPPacket)
 		if err != nil {
@@ -130,4 +126,19 @@ func main() {
 			panic(err)
 		}
 	}
+}
+
+// Read incoming RTCP packets
+// Before these packets are retuned they are processed by interceptors. For things
+// like NACK this needs to be called.
+func processRTCP(rtpSender *webrtc.RTPSender) {
+	go func() {
+		rtcpBuf := make([]byte, 1500)
+
+		for {
+			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+				return
+			}
+		}
+	}()
 }
