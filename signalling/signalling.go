@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,9 +16,9 @@ import (
 )
 
 // HTTPSDPServer starts a HTTP Server that consumes SDPs
-func HTTPSDPServer() chan string {
-	port := flag.Int("port", 8080, "http server port")
-	flag.Parse()
+func HTTPSDPServer(port int) chan string {
+	// port := flag.Int("port", 8080, "http server port")
+	// flag.Parse()
 
 	sdpChan := make(chan string)
 	http.HandleFunc("/sdp", func(w http.ResponseWriter, r *http.Request) {
@@ -29,13 +28,22 @@ func HTTPSDPServer() chan string {
 	})
 
 	go func() {
-		err := http.ListenAndServe(":"+strconv.Itoa(*port), nil)
+		err := http.ListenAndServe(":"+strconv.Itoa(port), nil)
 		if err != nil {
 			panic(err)
 		}
 	}()
 
+	fmt.Printf("HTTP SDP Server started on port %d\n", port)
+
 	return sdpChan
+}
+
+func HTTPSDPClient(sdp string, port int) {
+	_, err := http.Post("http://localhost:"+strconv.Itoa(port)+"/sdp", "application/json", strings.NewReader(sdp))
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Allows compressing offer/answer to bypass terminal input limits.

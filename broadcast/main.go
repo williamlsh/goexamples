@@ -17,13 +17,13 @@ const (
 
 func main() { // nolint:gocognit
 	for {
-		sdpChan := signalling.HTTPSDPServer()
+		sdpChan := signalling.HTTPSDPServer(8080)
 
 		// Everything below is the Pion WebRTC API, thanks for using it ❤️.
 		// Offer from pusher webRTC peer.
 		offer := webrtc.SessionDescription{}
 		signalling.Decode(<-sdpChan, &offer)
-		fmt.Println("")
+		fmt.Println("Recv offer from pusher peer")
 
 		peerConnectionConfig := webrtc.Configuration{
 			ICEServers: []webrtc.ICEServer{
@@ -107,12 +107,15 @@ func main() { // nolint:gocognit
 		<-gatherComplete
 
 		// Get the LocalDescription and take it to base64 so we can paste in browser
-		fmt.Println(signalling.Encode(*peerConnection.LocalDescription()))
+		// fmt.Println(signalling.Encode(*peerConnection.LocalDescription()))
+		answerStr := signalling.Encode(peerConnection.LocalDescription())
+		signalling.HTTPSDPClient(answerStr, 8081)
+		fmt.Println("Answered to pusher peer")
 
 		localTrack := <-localTrackChan
 		for {
 			fmt.Println("")
-			fmt.Println("Curl an base64 SDP to start sendonly peer connection")
+			fmt.Println("Curl an base64 SDP at http://localhost:8080/sdp to start sendonly peer connection")
 
 			recvOnlyOffer := webrtc.SessionDescription{}
 			signalling.Decode(<-sdpChan, &recvOnlyOffer)
