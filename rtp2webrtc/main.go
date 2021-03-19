@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
+	"time"
 
 	"github.com/pion/webrtc/v3"
 	"github.com/williamlsh/goexamples/signalling"
 )
 
 func main() {
+	rand.Seed(time.Now().UTC().UnixNano())
 	sdpChan := signalling.HTTPSDPServer(8081)
 
 	peerConnection, err := webrtc.NewPeerConnection(webrtc.Configuration{
@@ -117,6 +120,7 @@ func rtpListener(videoTrack *webrtc.TrackLocalStaticRTP) {
 
 	inboundRTPPacket := make([]byte, 1600) // UDP MTU
 	for {
+		// fmt.Println("RTP stream pushing...")
 		n, _, err := listener.ReadFrom(inboundRTPPacket)
 		if err != nil {
 			panic(fmt.Sprintf("error during read: %s", err))

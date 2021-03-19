@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"time"
 
 	"github.com/pion/rtcp"
@@ -12,10 +13,11 @@ import (
 )
 
 const (
-	rtcpPLIInterval = time.Second * 3
+	rtcpPLIInterval = time.Second * 1
 )
 
 func main() { // nolint:gocognit
+	rand.Seed(time.Now().UTC().UnixNano())
 	sdpChan := signalling.HTTPSDPServer(8080)
 
 	// Everything below is the Pion WebRTC API, thanks for using it ❤️.
@@ -67,6 +69,7 @@ func main() { // nolint:gocognit
 
 		rtpBuf := make([]byte, 1400)
 		for {
+			fmt.Println("RTP stream consuming...")
 			i, _, readErr := remoteTrack.Read(rtpBuf)
 			if readErr != nil {
 				panic(readErr)
@@ -81,6 +84,12 @@ func main() { // nolint:gocognit
 
 	peerConnection.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
 		fmt.Printf("Connection State has changed %s \n", connectionState.String())
+		if connectionState == webrtc.ICEConnectionStateFailed {
+			if err := peerConnection.Close(); err != nil {
+				panic(err)
+			}
+			fmt.Println("PeerConnection has been closed")
+		}
 	})
 
 	peerConnection.OnICEGatheringStateChange(func(gathererState webrtc.ICEGathererState) {
@@ -149,6 +158,20 @@ func main() { // nolint:gocognit
 				}
 			}
 		}()
+
+		peerConnection.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
+			fmt.Printf("Connection State has changed %s \n", connectionState.String())
+			if connectionState == webrtc.ICEConnectionStateFailed {
+				if err := peerConnection.Close(); err != nil {
+					panic(err)
+				}
+				fmt.Println("PeerConnection has been closed")
+			}
+		})
+
+		peerConnection.OnICEGatheringStateChange(func(gathererState webrtc.ICEGathererState) {
+			fmt.Printf("Gathering State has changed %s \n", gathererState.String())
+		})
 
 		// Set the remote SessionDescription
 		err = peerConnection.SetRemoteDescription(recvOnlyOffer)
