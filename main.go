@@ -1,5 +1,7 @@
 // +build !js
 
+// The author is in fact Sean DuBois (https://github.com/Sean-Der)
+
 package main
 
 import (
