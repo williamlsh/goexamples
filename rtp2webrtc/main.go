@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	sdpChan := signalling.HTTPSDPServer(8081)
+
 	peerConnection, err := webrtc.NewPeerConnection(webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
 			{
@@ -20,36 +22,14 @@ func main() {
 		panic(err)
 	}
 
-	go func() {
-		sdpChan := signalling.HTTPSDPServer(8081)
-
-		// Answer from broadcasting peer.
-		answer := webrtc.SessionDescription{}
-		signalling.Decode(<-sdpChan, &answer)
-		fmt.Println("Recv answer from broadcasting peer")
-
-		if peerConnection.SetRemoteDescription(answer); err != nil {
-			panic(err)
-		}
-	}()
-
-	// Open a UDP Listener for RTP Packets on port 5004
-	listener, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5004})
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		if err = listener.Close(); err != nil {
-			panic(err)
-		}
-	}()
-	fmt.Println("Started UDP listener")
-
 	// Create a video track
 	videoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
 	if err != nil {
 		panic(err)
 	}
+
+	go rtpListener(videoTrack)
+
 	rtpSender, err := peerConnection.AddTrack(videoTrack)
 	if err != nil {
 		panic(err)
@@ -60,26 +40,17 @@ func main() {
 	// This will notify you when the peer has connected/disconnected
 	peerConnection.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
 		fmt.Printf("Connection State has changed %s \n", connectionState.String())
+		if connectionState == webrtc.ICEConnectionStateFailed {
+			if err := peerConnection.Close(); err != nil {
+				panic(err)
+			}
+			fmt.Println("PeerConnection has been closed")
+		}
 	})
 
 	peerConnection.OnICEGatheringStateChange(func(gathererState webrtc.ICEGathererState) {
 		fmt.Printf("Gathering State has changed %s \n", gathererState.String())
 	})
-
-	// Wait for the offer to be pasted
-	// offer := webrtc.SessionDescription{}
-	// signalling.Decode(signalling.MustReadStdin(), &offer)
-
-	// Set the remote SessionDescription
-	// if err = peerConnection.SetRemoteDescription(offer); err != nil {
-	// 	panic(err)
-	// }
-
-	// Create answer
-	// answer, err := peerConnection.CreateAnswer(nil)
-	// if err != nil {
-	// 	panic(err)
-	// }
 
 	// Creating WebRTC offer
 	offer, err := peerConnection.CreateOffer(nil)
@@ -100,32 +71,21 @@ func main() {
 	// Create channel that is blocked until ICE Gathering is complete
 	gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
 
-	// Sets the LocalDescription, and starts our UDP listeners
-	// if err = peerConnection.SetLocalDescription(answer); err != nil {
-	// 	panic(err)
-	// }
-
 	// Block until ICE Gathering is complete, disabling trickle ICE
 	// we do this because we only can exchange one signaling message
 	// in a production application you should exchange ICE Candidates via OnICECandidate
 	<-gatherComplete
 
-	// Output the answer in base64 so we can paste it in browser
-	// fmt.Println(signalling.Encode(*peerConnection.LocalDescription()))
+	// Answer from broadcasting peer.
+	answer := webrtc.SessionDescription{}
+	signalling.Decode(<-sdpChan, &answer)
+	fmt.Println("Recv answer from broadcasting peer")
 
-	// Read RTP packets forever and send them to the WebRTC Client
-	inboundRTPPacket := make([]byte, 1600) // UDP MTU
-	fmt.Println("Sending RTP packets")
-	for {
-		n, _, err := listener.ReadFrom(inboundRTPPacket)
-		if err != nil {
-			panic(fmt.Sprintf("error during read: %s", err))
-		}
-
-		if _, err = videoTrack.Write(inboundRTPPacket[:n]); err != nil {
-			panic(err)
-		}
+	if peerConnection.SetRemoteDescription(answer); err != nil {
+		panic(err)
 	}
+
+	select {}
 }
 
 // Read incoming RTCP packets
@@ -141,4 +101,29 @@ func processRTCP(rtpSender *webrtc.RTPSender) {
 			}
 		}
 	}()
+}
+
+func rtpListener(videoTrack *webrtc.TrackLocalStaticRTP) {
+	listener, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 5004})
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		if err = listener.Close(); err != nil {
+			panic(err)
+		}
+	}()
+	fmt.Println("UDP server started on localhost:5004")
+
+	inboundRTPPacket := make([]byte, 1600) // UDP MTU
+	for {
+		n, _, err := listener.ReadFrom(inboundRTPPacket)
+		if err != nil {
+			panic(fmt.Sprintf("error during read: %s", err))
+		}
+
+		if _, err = videoTrack.Write(inboundRTPPacket[:n]); err != nil {
+			panic(err)
+		}
+	}
 }
