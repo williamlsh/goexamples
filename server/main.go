@@ -97,6 +97,7 @@ func createPublisher(w http.ResponseWriter, r *http.Request) {
 	peerConnection.OnTrack(func(t *webrtc.TrackRemote, _ *webrtc.RTPReceiver) {
 		buf := make([]byte, 1500)
 		for {
+			// fmt.Println("pushing...")
 			n, _, err := t.Read(buf)
 			if err != nil {
 				panic(err)
@@ -116,7 +117,7 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	var err error
-	videoTrack, err = webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
+	videoTrack, err = webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, "video", "pion")
 	if err != nil {
 		panic(err)
 	}
