@@ -16,9 +16,11 @@ func main() {
 			&cli.StringFlag{
 				Name:        "lang",
 				Aliases:     []string{"l"},
-				Value:       "english",
+				Value:       "spanish",
 				Usage:       "language for the greeting",
 				Destination: &language,
+				Required: true,
+				DefaultText: "spanish",
 			},
 		},
 		Action: func(c *cli.Context) error {
