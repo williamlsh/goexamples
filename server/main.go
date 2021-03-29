@@ -89,7 +89,13 @@ func createViewer(w http.ResponseWriter, r *http.Request) {
 }
 
 func createPublisher(w http.ResponseWriter, r *http.Request) {
-	peerConnection, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+	peerConnection, err := webrtc.NewPeerConnection(webrtc.Configuration{
+		ICEServers: []webrtc.ICEServer{
+			{
+				URLs: []string{"stun:stun.l.google.com:19302"},
+			},
+		},
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -116,7 +122,7 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	var err error
-	videoTrack, err = webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
+	videoTrack, err = webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, "video", "pion")
 	if err != nil {
 		panic(err)
 	}
