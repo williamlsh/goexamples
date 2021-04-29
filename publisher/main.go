@@ -50,6 +50,12 @@ func main() {
 	// This will notify you when the peer has connected/disconnected
 	peerConnection.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
 		fmt.Printf("Connection State has changed %s \n", connectionState.String())
+		if connectionState == webrtc.ICEConnectionStateFailed {
+			if err := peerConnection.Close(); err != nil {
+				panic(err)
+			}
+			fmt.Println("PeerConnection has been closed")
+		}
 	})
 
 	offer, err := peerConnection.CreateOffer(nil)

@@ -12,6 +12,10 @@
   </body>
 
   <script>
+    let log = (msg) => {
+        document.getElementById("logs").innerHTML += msg + "<br>";
+    };
+
     let pc = new RTCPeerConnection()
     pc.ontrack = function (event) {
       var el = document.createElement(event.track.kind)
@@ -22,7 +26,9 @@
       document.getElementById('remoteVideos').appendChild(el)
     }
 
-    pc.addTransceiver('video')
+    pc.addTransceiver('video');
+
+    pc.oniceconnectionstatechange = (e) => log(pc.iceConnectionState);
 
     pc.createOffer()
       .then(offer => {
