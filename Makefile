@@ -14,7 +14,16 @@ logs:
 peers:
 	@docker-compose exec ipfs ipfs swarm peers
 
-data/swarm.key:
-	@go install github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen@master
-	@-mkdir staging data > /dev/null 2>&1
+.PHONY: prepare
+prepare:
+	@-mkdir data staging
 	@ipfs-swarm-key-gen > data/swarm.key
+
+.PHONY: clean
+clean:
+	@-rm -rf data staging
+
+.PHONY: config
+config:
+	@docker-compose exec ipfs ipfs bootstrap rm --all
+	@docker-compose exec ipfs ipfs config --bool Swarm.EnableRelayHop true
