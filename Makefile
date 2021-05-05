@@ -1,11 +1,11 @@
-TARGET_ID=
-IPFS_ARGUMENTS=
+TARGET_ID?=
+IPFS_ARGUMENTS?=
 
-CONTAINER_IPFS=ipfs
-STAGING_DIR=staging
-DATA_DIR=data
+CONTAINER_IPFS?=ipfs
+STAGING_DIR?=staging
+DATA_DIR?=data
 
-SWARM_KEY=swam.key
+SWARM_KEY?=swam.key
 
 .PHONY: up
 up: down
