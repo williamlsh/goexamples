@@ -4,7 +4,7 @@ services:
     image: ipfs/go-ipfs:latest
     container_name: ipfs
     environment:
-      - IPFS_PROFILE=server
+      - IPFS_PROFILE=${IPFS_PROFILE:-server}
       - LIBP2P_FORCE_PNET=1
     volumes:
       - ./staging:/export

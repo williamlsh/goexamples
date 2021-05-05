@@ -2,3 +2,5 @@ data/*
 # !data/swarm.key
 
 staging/*
+
+.env
