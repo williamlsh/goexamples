@@ -5,7 +5,7 @@ CONTAINER_IPFS?=ipfs
 STAGING_DIR?=staging
 DATA_DIR?=data
 
-SWARM_KEY?=swam.key
+SWARM_KEY?=swarm.key
 
 .PHONY: up
 up: down
