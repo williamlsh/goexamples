@@ -1,3 +1,12 @@
+TARGET_ID=
+IPFS_ARGUMENTS=
+
+CONTAINER_IPFS=ipfs
+STAGING_DIR=staging
+DATA_DIR=data
+
+SWARM_KEY=swam.key
+
 .PHONY: up
 up: down
 	@docker-compose up -d
@@ -8,22 +17,40 @@ down:
 
 .PHONY: logs
 logs:
-	@docker-compose logs -f ipfs
+	@docker-compose logs -f $(CONTAINER_IPFS)
 
 .PHONY: peers
 peers:
-	@docker-compose exec ipfs ipfs swarm peers
+	@docker-compose exec $(CONTAINER_IPFS) ipfs swarm peers
+
+.PHONY: id
+id:
+	@docker-compose exec $(CONTAINER_IPFS) ipfs id
+
+.PHONY: bootstrap
+bootstrap:
+	@docker-compose exec $(CONTAINER_IPFS) ipfs bootstrap add $(TARGET_ID)
 
 .PHONY: prepare
 prepare:
-	@-mkdir data staging
-	@ipfs-swarm-key-gen > data/swarm.key
+	@go install github.com/Kubuxu/go-ipfs-swarm-key-gen/ipfs-swarm-key-gen@master
+	@-mkdir $(DATA_DIR) $(STAGING_DIR)
+	@ipfs-swarm-key-gen > $(DATA_DIR)/$(SWARM_KEY)
 
 .PHONY: clean
 clean:
-	@-rm -rf data staging
+	@-find $(DATA_DIR) $(STAGING_DIR) -type f,d -not -name '$(SWARM_KEY)' -delete
 
 .PHONY: config
 config:
-	@docker-compose exec ipfs ipfs bootstrap rm --all
-	@docker-compose exec ipfs ipfs config --bool Swarm.EnableRelayHop true
+	@docker-compose exec $(CONTAINER_IPFS) ipfs bootstrap rm --all
+	@docker-compose exec $(CONTAINER_IPFS) ipfs config --bool Swarm.EnableRelayHop true
+
+.PHONY: public-ip
+public-ip:
+	@-apt install dnsutils -y
+	@dig +short myip.opendns.com @resolver1.opendns.com
+
+.PHONY: ipfs
+ipfs:
+	@docker-compose exec $(CONTAINER_IPFS) ipfs $(IPFS_ARGUMENTS)
