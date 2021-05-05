@@ -54,3 +54,7 @@ public-ip:
 .PHONY: ipfs
 ipfs:
 	@docker-compose exec $(CONTAINER_IPFS) ipfs $(IPFS_ARGUMENTS)
+
+.PHONY: list-all
+list-all:
+	@docker-compose exec $(CONTAINER_IPFS) ipfs refs -r -u local
