@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  job-processor:
+    build: .
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
