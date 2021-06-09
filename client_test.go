@@ -109,7 +109,6 @@ func TestHTTPClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println(server.URL)
 	resp, err := client.Get(server.URL)
 	if err != nil {
 		panic(err)

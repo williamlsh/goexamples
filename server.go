@@ -51,7 +51,8 @@ func Server() {
 
 // HandleRequest handles /api requests.
 func HandleRequest(w http.ResponseWriter, r *http.Request) {
-	if contentType := r.Header.Get("Content-Type"); !strings.Contains(contentType, "application/json") {
+	contentType := r.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "application/json") {
 		http.Error(w, "content type must be application/json", http.StatusBadRequest)
 		return
 	}
@@ -63,7 +64,7 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var result Result
-	innerResult := processQuery(query.Content)
+	innerResult := processQuery(query.Content, &cache)
 	result.Content = innerResult
 
 	fmt.Printf("process result: %+v\n", innerResult)
@@ -74,7 +75,7 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func processQuery(content []string) (result []bool) {
+func processQuery(content []string, cache *Cache) (result []bool) {
 	// Prepare result first.
 	result = make([]bool, len(content))
 
