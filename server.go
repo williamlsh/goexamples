@@ -13,14 +13,12 @@ const (
 	address = ":8080"
 )
 
-// cache is a two dimensional compound data type, the inner set contains
-// all cached string values at each index of of the outer slice container.
-// The client query which is a string slice hits every value in a set at corresponding index.
+// cache is a concurency safe set.
 var cache Cache
 
 type Cache struct {
 	sync.Mutex
-	list []Set
+	Set
 }
 
 // Set containers distinct keys, it's values are irelevent.
@@ -90,48 +88,33 @@ func processQuery(content []string, cache *Cache) (result []bool) {
 	defer cache.Unlock()
 
 	// For the first time client query, just copy content to cache.
-	if cache.list == nil {
-		cache.list = make([]Set, len(content))
+	if cache.Set == nil {
+		// Initialize set.
+		cache.Set = make(Set)
 
-		for i, s := range content {
-			// Make a new Set for every cache index.
-			set := make(Set)
-			// Fill Set with value.
-			set[s] = struct{}{}
-			// Add Set to cache at corresponding index.
-			cache.list[i] = set
+		// Fill set with distinct query elements.
+		for _, s := range content {
+			cache.Set[s] = struct{}{}
 		}
-
 		return
 	}
 
 	// This is not the first time client query.
+
+	// Copy a set from cache, use this set as base cache to compare user query,
+	// so duplicated query elements won't effect final results.
+	set := make(Set)
+	for k, v := range cache.Set {
+		set[k] = v
+	}
+
 	for i, s := range content {
-		// Case 1: client query length is longger than cache length.
-		if i > len(cache.list)-1 {
-			// Expand cache length to match content length.
-
-			// Make a new Set.
-			set := make(Set)
-			// Fill set with new value copied from content at corresponding index.
-			set[s] = struct{}{}
-			// Append set to existing cache.
-			cache.list = append(cache.list, set)
-
-			continue
-		}
-
-		// Case 2: client query length is no longger than cache length.
-
-		// Compare corresponding index value between content elements and cache Set.
-		// Get Set at index i.
-		set := cache.list[i]
+		// Set contains query elememt.
 		if _, ok := set[s]; ok {
-			// Content element i just hits cache Set i.
 			result[i] = true
 		} else {
-			// Add new element to set.
-			set[s] = struct{}{}
+			// Query elememt is not in set.
+			cache.Set[s] = struct{}{}
 		}
 	}
 

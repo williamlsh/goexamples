@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestBcjClient(t *testing.T) {
@@ -17,6 +18,9 @@ func TestBcjClient(t *testing.T) {
 	defer removeCerts()
 
 	waitForCerts()
+
+	// Wait for server up.
+	time.Sleep(1 * time.Second)
 
 	t.Run("empty query", func(t *testing.T) {
 		content := []string{}
@@ -43,44 +47,37 @@ func TestBcjClient(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(result2, []bool{true, false, false}) {
+		if !reflect.DeepEqual(result2, []bool{true, true, false}) {
 			t.Fatalf("unexpected result: %+v", result)
 		}
 
-		if !reflect.DeepEqual(cache.list, []Set{
-			{"a": struct{}{}},
-			{
-				"b": struct{}{},
-				"c": struct{}{},
-			},
-			{
-				"c": struct{}{},
-				"d": struct{}{},
-			},
+		if !reflect.DeepEqual(cache.Set, Set{
+			"a": struct{}{},
+			"b": struct{}{},
+			"c": struct{}{},
+			"d": struct{}{},
 		}) {
-			t.Fatalf("Unexpected cache result: %+v\n", cache.list)
+			t.Fatalf("Unexpected cache result: %+v\n", cache.Set)
 		}
 	})
-	t.Run("shorter query content all hits", func(t *testing.T) {
-		content := []string{"a", "b"}
-		result, err := BcjClient(content)
+	t.Run("Two times query no hit", func(t *testing.T) {
+		content1 := []string{"x", "y", "z"}
+		result, err := BcjClient(content1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(result, []bool{true, true}) {
+		if !reflect.DeepEqual(result, []bool{false, false, false}) {
 			t.Fatalf("unexpected result: %+v", result)
 		}
-	})
-	t.Run("longger query content no hit", func(t *testing.T) {
-		content := []string{"e", "f", "g", "h", "i"}
-		result, err := BcjClient(content)
+
+		content2 := []string{"p", "q", "v"}
+		result2, err := BcjClient(content2)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(result, []bool{false, false, false, false, false}) {
+		if !reflect.DeepEqual(result2, []bool{false, false, false}) {
 			t.Fatalf("unexpected result: %+v", result)
 		}
-		fmt.Printf("cache: %+v\n", cache.list)
 	})
 }
 
