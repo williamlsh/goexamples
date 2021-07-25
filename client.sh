@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
-curl -i -vv --request "POST" \
+curl -s --request "POST" \
     --header "Content-Type: application/json" \
     --data '{"inches": 1}' \
-    http://localhost:8080/twirp/haberdasher.Haberdasher/MakeHat
+    http://localhost:8080/twirp/haberdasher.Haberdasher/MakeHat |
+    jq
 
 echo 'inches:1' |
     protoc --encode haberdasher.Size ./pb/service.proto |
