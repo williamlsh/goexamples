@@ -12,14 +12,9 @@ RUN set -eux \
     pkg-config \
     cmake \
     software-properties-common \
+    && add-apt-repository ppa:longsleep/golang-backports -y \
+    && apt-get install -y --no-install-recommends golang-go \
     && rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
-    add-apt-repository ppa:longsleep/golang-backports -y
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    golang-go
 
 WORKDIR /tmp
 
@@ -31,7 +26,7 @@ RUN git clone --depth=1 --branch master --single-branch https://github.com/Haivi
 
 WORKDIR /app
 
-ENV LD_LIBRARY_PATH /lib:/usr/lib:/usr/local/lib64
+ENV LD_LIBRARY_PATH /usr/local/lib
 
 COPY main.go go.mod go.sum ./
 
