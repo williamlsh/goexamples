@@ -13,6 +13,8 @@ import (
 func main() {
 	logging.Debug(true)
 
+	srtgo.SrtSetLogLevel(srtgo.SrtLogLevelDebug)
+
 	if err := Ingest(&log.Logger); err != nil {
 		panic(err)
 	}
