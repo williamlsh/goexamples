@@ -1,67 +1,78 @@
 package main
 
 import (
-	"bufio"
-	"os"
-
 	"github.com/haivision/srtgo"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/williamlsh/logging"
 )
 
-func main() {
+func init() {
 	logging.Debug(true)
+}
 
+var allowedStreamIDs = map[string]bool{
+	"foo":    true,
+	"foobar": true,
+}
+
+func main() {
 	srtgo.SrtSetLogLevel(srtgo.SrtLogLevelDebug)
 
-	if err := Ingest(&log.Logger); err != nil {
+	if err := run(); err != nil {
 		panic(err)
 	}
 }
 
-func Ingest(logger *zerolog.Logger) error {
+func run() error {
 	options := map[string]string{
 		"blocking":  "0",
 		"transtype": "file",
+		"latency":   "300",
 	}
 
 	hostname := "0.0.0.0"
 	port := 8090
 
-	logger.Info().Str("hostname", hostname).Int("port", port).Msg("Listening")
+	log.Info().Str("hostname", hostname).Int("port", port).Msg("Listening")
 
-	srtSocket := srtgo.NewSrtSocket(hostname, uint16(port), options)
-	if err := srtSocket.Listen(1); err != nil {
-		logger.Err(err).Msg("failed to listen")
+	ss := srtgo.NewSrtSocket(hostname, uint16(port), options)
+	if err := ss.Listen(1); err != nil {
+		log.Err(err).Msg("failed to listen")
 		return err
 	}
-	defer srtSocket.Close()
+	defer ss.Close()
+
+	// ss.SetListenCallback(listenCallback)
 
 	for {
-		if err := handleSRT(srtSocket); err != nil {
+		if err := handleSRT(ss); err != nil {
 			return err
 		}
 	}
 }
 
-func handleSRT(srtSocket *srtgo.SrtSocket) error {
-	s, _, err := srtSocket.Accept()
+// func listenCallback(socket *srtgo.SrtSocket, version int, addr *net.UDPAddr, streamID string) bool {
+// 	log.Info().Int("version", version).Str("stream_id", streamID).Msg("socket will connect")
+
+// 	// socket not in allowed ids -> reject
+// 	if _, found := allowedStreamIDs[streamID]; !found {
+// 		// set custom reject reason
+// 		socket.SetRejectReason(srtgo.RejectionReasonUnauthorized)
+// 		return false
+// 	}
+
+// 	// allow connection
+// 	return true
+// }
+
+func handleSRT(ss *srtgo.SrtSocket) error {
+	s, _, err := ss.Accept()
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
-	f, err := os.Create("sample.ts")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	w := bufio.NewWriter(f)
-	defer w.Flush()
-
-	buf := make([]byte, 2048)
+	buf := make([]byte, 1500)
 	for {
 		n, err := s.Read(buf)
 		if err != nil {
@@ -71,7 +82,8 @@ func handleSRT(srtSocket *srtgo.SrtSocket) error {
 			break
 		}
 
-		if _, err := w.Write(buf[:n]); err != nil {
+		_, err = s.Write(buf[:n])
+		if err != nil {
 			return err
 		}
 	}
