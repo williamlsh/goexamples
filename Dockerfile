@@ -2,7 +2,7 @@ FROM ghcr.io/williamlsh/srt-docker:latest AS libsrt
 
 FROM golang:alpine
 
-COPY --from=libsrt /usr/local /usr/local
+COPY --from=libsrt /opt/srt /usr/local
 
 RUN apk update && apk add --no-cache \
     build-base
