@@ -21,7 +21,7 @@ type udpConn struct {
 	payloadType uint8
 }
 
-func createPeerConnection(offer *webrtc.SessionDescription, candidateCh chan string, signalPeer SignalFunc) error {
+func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan string, signalPeer SignalFunc) error {
 	var candidatesMux sync.Mutex
 	pendingCandidates := make([]*webrtc.ICECandidate, 0)
 
@@ -41,8 +41,8 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh chan str
 		return err
 	}
 	defer func() {
-		if cErr := peerConnection.Close(); cErr != nil {
-			fmt.Printf("cannot close peerConnection: %v\n", cErr)
+		if err := peerConnection.Close(); err != nil {
+			log.Err(err).Msg("could not close peerConnection")
 		}
 	}()
 
@@ -103,11 +103,10 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh chan str
 			return
 		}
 		// Send candidate.
-		if err := signalPeer(c.ToJSON(), "candidate"); err != nil {
+		if err := signalPeer(c.ToJSON().Candidate, "candidate"); err != nil {
 			log.Err(err).Msg("could not send candidate")
 		}
 	})
-	go addICECandidate(peerConnection, candidateCh)
 
 	// Set a handler for when a new remote track starts, this handler will forward data to
 	// our UDP listeners.
@@ -195,14 +194,11 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh chan str
 		log.Err(err).Msg("could not set remote description")
 		return err
 	}
+	log.Info().Msg("set remote description")
 
 	// Create answer
 	answer, err := peerConnection.CreateAnswer(nil)
 	if err != nil {
-		return err
-	}
-
-	if err := signalPeer(&answer, "answer"); err != nil {
 		return err
 	}
 
@@ -211,11 +207,21 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh chan str
 		return err
 	}
 
+	if err := signalPeer(&answer, "answer"); err != nil {
+		return err
+	}
+
+	go func() {
+		if err := addICECandidate(peerConnection, candidateCh); err != nil {
+			log.Err(err).Msg("could not add candidate")
+		}
+	}()
+
 	candidatesMux.Lock()
 	defer candidatesMux.Unlock()
 
 	for _, c := range pendingCandidates {
-		if err := signalPeer(c.ToJSON(), "candidate"); err != nil {
+		if err := signalPeer(c.ToJSON().Candidate, "candidate"); err != nil {
 			log.Err(err).Msg("could not send candidate")
 			return err
 		}
@@ -224,11 +230,12 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh chan str
 	return nil
 }
 
-func addICECandidate(peerConnection *webrtc.PeerConnection, candidateCh chan string) error {
+func addICECandidate(peerConnection *webrtc.PeerConnection, candidateCh <-chan string) error {
 	for c := range candidateCh {
 		if err := peerConnection.AddICECandidate(webrtc.ICECandidateInit{Candidate: c}); err != nil {
 			return err
 		}
+		log.Info().Msg("added a candidate")
 	}
 	return nil
 }
