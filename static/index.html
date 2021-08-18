@@ -7,6 +7,7 @@ Logs<br />
 <script>
     const conn = new WebSocket(`ws://${location.host}/webrtc`);
 
+    let pendingCandidates = []
     let pc = new RTCPeerConnection({
         iceServers: [
             {
@@ -14,23 +15,35 @@ Logs<br />
             },
         ],
     });
-    var log = (msg) => {
+    var log = msg => {
         document.getElementById("logs").innerHTML += msg + "<br>";
     };
 
     navigator.mediaDevices
         .getUserMedia({ video: true, audio: false })
-        .then((stream) => {
-            stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-            document.getElementById("video1").srcObject = stream[0];
+        .then(stream => {
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            document.getElementById("video1").srcObject = stream;
         })
         .catch(log);
 
     pc.oniceconnectionstatechange = (e) => log(pc.iceConnectionState);
 
-    pc.onicecandidate = e => {
-        
-    };
+    pc.onicecandidate = (e) => {
+        if (e.candidate == null) {
+            console.log("get local session description when candidate is null", pc.localDescription)
+            return
+        }
+
+        if (pc.remoteDescription == null) {
+            console.log("pending candidate")
+
+            pendingCandidates.push(e.candidate)
+            return
+        }
+
+        sendCandidate(e.candidate)
+    }
 
     conn.addEventListener("close", (ev) => {
         console.log(`WebSocket Disconnected code: ${ev.code}, reason: ${ev.reason}`);
@@ -40,23 +53,20 @@ Logs<br />
         console.info("websocket connected");
 
         pc.createOffer()
-            .then(sdp => {
-                pc.setLocalDescription(sdp)
-                    .then(() => {
-                        console.log("set local description", sdp)
-                    })
-                    .catch(console)
+            .then(d => {
+                pc.setLocalDescription(d).catch(console)
 
                 let msg = {
                     event: "offer",
-                    sdp: JSON.stringify(sdp),
+                    data: JSON.stringify(d),
                 };
-
                 conn.send(JSON.stringify(msg));
 
-                console.log("sent offer");
+                console.log("sent offer")
             })
-            .catch(console);
+            .catch(log);
+
+        pendingCandidates.forEach(c => sendCandidate(c))
     });
 
     conn.addEventListener("message", (ev) => {
@@ -71,7 +81,7 @@ Logs<br />
             case "answer":
                 let answer;
                 try {
-                    answer = JSON.parse(msg.sdp);
+                    answer = JSON.parse(msg.data);
                 } catch (e) {
                     return console.error("failed to parse answer");
                 }
@@ -84,6 +94,40 @@ Logs<br />
                     })
                     .catch((e) => console.error(e));
                 break;
+            case "candidate":
+                try {
+                    addCandidate(msg.data)
+                } catch (e) {
+                    console.error(e)
+                }
+                break;
+            default:
+                break;
         }
     });
+
+    function sendCandidate(candidate) {
+        let msg = {
+            event: "candidate",
+            data: JSON.stringify(candidate)
+        }
+        conn.send(JSON.stringify(msg))
+
+        console.log("sent a candidate")
+    }
+
+    function addCandidate(str) {
+        let candidate
+        try {
+            candidate = JSON.parse(str)
+        } catch (e) {
+            return console.log('failed to parse candidate')
+        }
+        if (!candidate) {
+            return console.log('empty candidate')
+        }
+        pc.addIceCandidate(candidate)
+            .then(() => console.log("added a candidate"))
+            .catch(e => console.error(e))
+    }
 </script>
