@@ -7,39 +7,14 @@ Logs<br />
 <script>
     const conn = new WebSocket(`ws://${location.host}/webrtc`);
 
-    let pendingCandidates = []
-    let pc = new RTCPeerConnection();
     var log = msg => {
         document.getElementById("logs").innerHTML += msg + "<br>";
     };
 
-    navigator.mediaDevices
-        .getUserMedia({ video: true, audio: false })
-        .then(stream => {
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
-            document.getElementById("video1").srcObject = stream;
-
-            console.log("got user media")
-        })
-        .catch(log);
-
-    pc.oniceconnectionstatechange = (e) => log(pc.iceConnectionState);
-
-    pc.onicecandidate = (e) => {
-        if (e.candidate == null) {
-            console.log("get local session description when candidate is null", pc.localDescription)
-            return
-        }
-
-        if (pc.remoteDescription == null) {
-            console.log("pending candidate")
-
-            pendingCandidates.push(e.candidate)
-            return
-        }
-
-        sendCandidate(e.candidate)
-    }
+    let pendingOutgoingCandidates = []
+    let pendingIncomingCandidates = []
+    let answered = false
+    let pc = new RTCPeerConnection();
 
     conn.addEventListener("close", (ev) => {
         console.log(`WebSocket Disconnected code: ${ev.code}, reason: ${ev.reason}`);
@@ -48,21 +23,46 @@ Logs<br />
     conn.addEventListener("open", (ev) => {
         console.info("websocket connected");
 
-        pc.createOffer()
-            .then(d => {
-                pc.setLocalDescription(d).catch(console)
+        navigator.mediaDevices
+            .getUserMedia({ video: true, audio: false })
+            .then(stream => {
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
+                document.getElementById("video1").srcObject = stream;
 
-                let msg = {
-                    event: "offer",
-                    data: JSON.stringify(d),
-                };
-                conn.send(JSON.stringify(msg));
+                console.log("got user media")
 
-                console.log("sent offer")
+                pc.createOffer()
+                    .then(d => {
+                        pc.setLocalDescription(d).catch(console)
+
+                        let msg = {
+                            event: "offer",
+                            data: JSON.stringify(d),
+                        };
+                        conn.send(JSON.stringify(msg));
+
+                        console.log("sent offer");
+
+                        pc.oniceconnectionstatechange = (e) => log(pc.iceConnectionState);
+
+                        pc.onicecandidate = (e) => {
+                            if (e.candidate == null) {
+                                return
+                            }
+
+                            if (pc.remoteDescription == null) {
+                                console.log("pending candidate")
+
+                                pendingOutgoingCandidates.push(e.candidate)
+                                return
+                            }
+
+                            sendCandidate(e.candidate)
+                        }
+                    })
+                    .catch(log);
             })
             .catch(log);
-
-        pendingCandidates.forEach(c => sendCandidate(c))
     });
 
     conn.addEventListener("message", (ev) => {
@@ -87,17 +87,35 @@ Logs<br />
                 pc.setRemoteDescription(answer)
                     .then(() => {
                         console.log("set remote description");
+
+                        answered = true
+
+                        console.log("pending outgoing candidates length", pendingOutgoingCandidates.length)
+                        pendingOutgoingCandidates.forEach(c => sendCandidate(c))
+
+                        console.log("pending incoming candidates length", pendingIncomingCandidates.length)
+                        pendingIncomingCandidates.forEach(c => addCandidate(c))
                     })
                     .catch((e) => console.error(e));
                 break;
             case "candidate":
+                if (!answered) {
+                    console.log("not receiving the answer yet")
+
+                    pendingIncomingCandidates.push(msg.data)
+                    return
+                }
                 try {
                     addCandidate(msg.data)
+
+                    console.log("pending incoming candidates length", pendingIncomingCandidates.length)
+                    pendingIncomingCandidates.forEach(c => addCandidate(c))
                 } catch (e) {
                     console.error(e)
                 }
                 break;
             default:
+                console.log("unknown event")
                 break;
         }
     });
