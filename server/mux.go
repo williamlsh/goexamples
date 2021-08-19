@@ -39,7 +39,7 @@ func handleWebrtc(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var candidateCh = make(chan string, 4)
+	var candidateCh = make(chan *webrtc.ICECandidateInit, 4)
 	defer close(candidateCh)
 
 	for {
@@ -65,7 +65,12 @@ func handleWebrtc(w http.ResponseWriter, r *http.Request) {
 				signalPeer(ctx, c),
 			)
 		case "candidate":
-			candidateCh <- msg.Data
+			var sdp webrtc.ICECandidateInit
+			if err := json.Unmarshal([]byte(msg.Data), &sdp); err != nil {
+				log.Err(err).Msg("could not unmarshal message data")
+				return
+			}
+			candidateCh <- &sdp
 		default:
 			log.Info().Msg("unknown event")
 		}
@@ -75,27 +80,15 @@ func handleWebrtc(w http.ResponseWriter, r *http.Request) {
 // signalPeer sends offer or candidate to peer.
 func signalPeer(ctx context.Context, conn *websocket.Conn) SignalFunc {
 	return func(msg interface{}, event string) error {
-		switch event {
-		case "answer":
-			b, err := json.Marshal(msg)
-			if err != nil {
-				return err
-			}
-			if err := wsjson.Write(ctx, conn, &message{
-				Event: event,
-				Data:  string(b),
-			}); err != nil {
-				return err
-			}
-		case "candidate":
-			if err := wsjson.Write(ctx, conn, &message{
-				Event: event,
-				Data:  msg.(string),
-			}); err != nil {
-				return err
-			}
-		default:
-			log.Info().Msg("unknown event")
+		b, err := json.Marshal(msg)
+		if err != nil {
+			return err
+		}
+		if err := wsjson.Write(ctx, conn, &message{
+			Event: event,
+			Data:  string(b),
+		}); err != nil {
+			return err
 		}
 		log.Info().Str("event", event).Msg("signaled peer")
 		return nil

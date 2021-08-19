@@ -36,7 +36,7 @@ func negotiate() error {
 
 	var (
 		answerCh    = make(chan *webrtc.SessionDescription, 1)
-		candidateCh = make(chan string, 4)
+		candidateCh = make(chan *webrtc.ICECandidateInit, 4)
 	)
 
 	go func() {
@@ -62,7 +62,12 @@ func negotiate() error {
 			}
 			answerCh <- &sdp
 		case "candidate":
-			candidateCh <- msg.Data
+			var sdp webrtc.ICECandidateInit
+			if err := json.Unmarshal([]byte(msg.Data), &sdp); err != nil {
+				log.Err(err).Msg("could not unmarshal message data")
+				return err
+			}
+			candidateCh <- &sdp
 		default:
 			log.Info().Msg("unknown event")
 		}

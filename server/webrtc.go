@@ -21,7 +21,7 @@ type udpConn struct {
 	payloadType uint8
 }
 
-func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan string, signalPeer SignalFunc) error {
+func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan *webrtc.ICECandidateInit, signalPeer SignalFunc) error {
 	var candidatesMux sync.Mutex
 	pendingCandidates := make([]*webrtc.ICECandidate, 0)
 
@@ -105,7 +105,7 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan s
 			return
 		}
 		// Send candidate.
-		if err := signalPeer(c.ToJSON().Candidate, "candidate"); err != nil {
+		if err := signalPeer(c.ToJSON(), "candidate"); err != nil {
 			log.Err(err).Msg("could not send candidate")
 		}
 	})
@@ -223,7 +223,7 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan s
 	defer candidatesMux.Unlock()
 
 	for _, c := range pendingCandidates {
-		if err := signalPeer(c.ToJSON().Candidate, "candidate"); err != nil {
+		if err := signalPeer(c.ToJSON(), "candidate"); err != nil {
 			log.Err(err).Msg("could not send candidate")
 			return err
 		}
@@ -232,9 +232,9 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan s
 	return nil
 }
 
-func addICECandidate(peerConnection *webrtc.PeerConnection, candidateCh <-chan string) error {
+func addICECandidate(peerConnection *webrtc.PeerConnection, candidateCh <-chan *webrtc.ICECandidateInit) error {
 	for c := range candidateCh {
-		if err := peerConnection.AddICECandidate(webrtc.ICECandidateInit{Candidate: c}); err != nil {
+		if err := peerConnection.AddICECandidate(*c); err != nil {
 			return err
 		}
 		log.Info().Msg("added a candidate")
