@@ -1,3 +1,5 @@
+<button onclick="window.startSession()"> Start Session </button><br />
+
 Video<br />
 <video id="video1" width="160" height="120" autoplay muted></video> <br />
 
@@ -5,120 +7,130 @@ Logs<br />
 <div id="logs"></div>
 
 <script>
-    const conn = new WebSocket(`ws://${location.host}/webrtc`);
-
     var log = msg => {
         document.getElementById("logs").innerHTML += msg + "<br>";
     };
 
     let pendingOutgoingCandidates = []
     let pendingIncomingCandidates = []
-    let answered = false
-    let pc = new RTCPeerConnection();
-
-    conn.addEventListener("close", (ev) => {
-        console.log(`WebSocket Disconnected code: ${ev.code}, reason: ${ev.reason}`);
+    let setRemoteDescription = false
+    let conn = null
+    let pc = new RTCPeerConnection({
+        iceServers: [
+            {
+                urls: 'stun:stun.l.google.com:19302'
+            }
+        ]
     });
 
-    conn.addEventListener("open", (ev) => {
-        console.info("websocket connected");
+    navigator.mediaDevices
+        .getUserMedia({ video: true, audio: false })
+        .then(stream => {
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            document.getElementById("video1").srcObject = stream;
 
-        navigator.mediaDevices
-            .getUserMedia({ video: true, audio: false })
-            .then(stream => {
-                stream.getTracks().forEach(track => pc.addTrack(track, stream));
-                document.getElementById("video1").srcObject = stream;
+            console.log("got user media");
 
-                console.log("got user media")
+            pc.createOffer({
+                'offerToReceiveAudio': false,
+                'offerToReceiveVideo': false
+            }).then(d => pc.setLocalDescription(d)).catch(log)
+        })
+        .catch(log);
 
-                pc.createOffer()
-                    .then(d => {
-                        pc.setLocalDescription(d).catch(console)
+    pc.oniceconnectionstatechange = (e) => log(pc.iceConnectionState);
 
-                        let msg = {
-                            event: "offer",
-                            data: JSON.stringify(d),
-                        };
-                        conn.send(JSON.stringify(msg));
-
-                        console.log("sent offer");
-
-                        pc.oniceconnectionstatechange = (e) => log(pc.iceConnectionState);
-
-                        pc.onicecandidate = (e) => {
-                            if (e.candidate == null) {
-                                return
-                            }
-
-                            if (pc.remoteDescription == null) {
-                                console.log("pending candidate")
-
-                                pendingOutgoingCandidates.push(e.candidate)
-                                return
-                            }
-
-                            sendCandidate(e.candidate)
-                        }
-                    })
-                    .catch(log);
-            })
-            .catch(log);
-    });
-
-    conn.addEventListener("message", (ev) => {
-        console.log(`received message: ${ev.data}`);
-
-        let msg = JSON.parse(ev.data);
-        if (!msg) {
-            return console.error("failed to parse msg");
+    pc.onicecandidate = (e) => {
+        if (e.candidate == null) {
+            return
         }
 
-        switch (msg.event) {
-            case "answer":
-                let answer;
-                try {
-                    answer = JSON.parse(msg.data);
-                } catch (e) {
-                    return console.error("failed to parse answer");
-                }
+        if (pc.remoteDescription == null) {
+            pendingOutgoingCandidates.push(e.candidate)
+            return
+        }
 
-                console.log("received answer", answer);
+        sendCandidate(e.candidate)
+    }
 
-                pc.setRemoteDescription(answer)
-                    .then(() => {
-                        console.log("set remote description");
+    window.startSession = () => {
+        conn = new WebSocket(`ws://${location.host}/webrtc`);
 
-                        answered = true
+        conn.addEventListener("close", (ev) => {
+            console.log(`WebSocket Disconnected code: ${ev.code}, reason: ${ev.reason}`);
+        });
 
-                        console.log("pending outgoing candidates length", pendingOutgoingCandidates.length)
-                        pendingOutgoingCandidates.forEach(c => sendCandidate(c))
+        conn.addEventListener("open", (ev) => {
+            console.info("websocket connected");
+
+            try {
+                let msg = {
+                    event: "offer",
+                    data: JSON.stringify(pc.localDescription),
+                };
+                conn.send(JSON.stringify(msg));
+            } catch (e) {
+                console.error(e)
+            }
+
+            console.log("sent offer");
+        });
+
+        conn.addEventListener("message", (ev) => {
+            console.log(`received message: ${ev.data}`);
+
+            let msg = JSON.parse(ev.data);
+            if (!msg) {
+                return console.error("failed to parse msg");
+            }
+
+            switch (msg.event) {
+                case "answer":
+                    let answer;
+                    try {
+                        answer = JSON.parse(msg.data);
+                    } catch (e) {
+                        return console.error("failed to parse answer");
+                    }
+
+                    console.log("received answer", answer);
+
+                    pc.setRemoteDescription(answer)
+                        .then(() => {
+                            console.log("set remote description");
+
+                            setRemoteDescription = true
+
+                            console.log("pending outgoing candidates length", pendingOutgoingCandidates.length)
+                            pendingOutgoingCandidates.forEach(c => sendCandidate(c))
+
+                            console.log("pending incoming candidates length", pendingIncomingCandidates.length)
+                            pendingIncomingCandidates.forEach(c => addCandidate(c))
+                        })
+                        .catch((e) => console.error(e));
+                    break;
+                case "candidate":
+                    if (!setRemoteDescription) {
+                        console.log("not set remote description yet")
+
+                        pendingIncomingCandidates.push(msg.data)
+                        return
+                    }
+                    try {
+                        addCandidate(msg.data)
 
                         console.log("pending incoming candidates length", pendingIncomingCandidates.length)
                         pendingIncomingCandidates.forEach(c => addCandidate(c))
-                    })
-                    .catch((e) => console.error(e));
-                break;
-            case "candidate":
-                if (!answered) {
-                    console.log("not receiving the answer yet")
-
-                    pendingIncomingCandidates.push(msg.data)
-                    return
-                }
-                try {
-                    addCandidate(msg.data)
-
-                    console.log("pending incoming candidates length", pendingIncomingCandidates.length)
-                    pendingIncomingCandidates.forEach(c => addCandidate(c))
-                } catch (e) {
-                    console.error(e)
-                }
-                break;
-            default:
-                console.log("unknown event")
-                break;
-        }
-    });
+                    } catch (e) {
+                        console.error(e)
+                    }
+                    break;
+                default:
+                    console.log("unknown event")
+                    break;
+            }
+        });
+    }
 
     function sendCandidate(candidate) {
         let msg = {
