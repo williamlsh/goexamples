@@ -120,6 +120,7 @@ func createPeerConnection(signalPeer SignalFunc, answerCh <-chan *webrtc.Session
 		}
 	}
 
+	// Creates the offer.
 	offer, err := peerConnection.CreateOffer(nil)
 	if err != nil {
 		panic(err)
@@ -129,10 +130,12 @@ func createPeerConnection(signalPeer SignalFunc, answerCh <-chan *webrtc.Session
 		panic(err)
 	}
 
+	// Sends the offer.
 	if err := signalPeer(peerConnection.LocalDescription(), "offer"); err != nil {
 		return err
 	}
 
+	// Waits for an answer and sets remote description.
 	answer := <-answerCh
 	if err := peerConnection.SetRemoteDescription(*answer); err != nil {
 		panic(err)

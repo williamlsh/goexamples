@@ -204,11 +204,12 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan *
 		return err
 	}
 
-	// Sets the LocalDescription, and starts our UDP listeners
+	// Sets the LocalDescription
 	if err = peerConnection.SetLocalDescription(answer); err != nil {
 		return err
 	}
 
+	// Sends the answer back.
 	if err := signalPeer(&answer, "answer"); err != nil {
 		return err
 	}
