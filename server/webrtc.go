@@ -16,7 +16,7 @@ import (
 type SignalFunc func(msg interface{}, event string) error
 
 type udpConn struct {
-	conn        *net.UDPConn
+	conn        net.Conn
 	port        int
 	payloadType uint8
 }
@@ -53,13 +53,6 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan *
 		return err
 	}
 
-	// Create a local addr
-	var laddr *net.UDPAddr
-	if laddr, err = net.ResolveUDPAddr("udp", "127.0.0.1:"); err != nil {
-		log.Err(err).Msg("could not resolve udp")
-		return err
-	}
-
 	// Prepare udp conns
 	// Also update incoming packets with expected PayloadType, the browser may use
 	// a different value. We have to modify so our stream matches what rtp-forwarder.sdp expects
@@ -68,23 +61,10 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan *
 		"video": {port: 4002, payloadType: 96},
 	}
 	for _, c := range udpConns {
-		// Create remote addr
-		var raddr *net.UDPAddr
-		if raddr, err = net.ResolveUDPAddr("udp", fmt.Sprintf("127.0.0.1:%d", c.port)); err != nil {
-			log.Err(err).Msg("could not resolve udp")
+		c.conn, err = net.Dial("udp", fmt.Sprintf("127.0.0.1:%d", c.port))
+		if err != nil {
 			return err
 		}
-
-		// Dial udp
-		if c.conn, err = net.DialUDP("udp", laddr, raddr); err != nil {
-			log.Err(err).Msg("could not dial udp")
-			return err
-		}
-		defer func(conn net.PacketConn) {
-			if closeErr := conn.Close(); closeErr != nil {
-				log.Err(closeErr).Msg("could not close udp connection")
-			}
-		}(c.conn)
 	}
 
 	peerConnection.OnICECandidate(func(c *webrtc.ICECandidate) {
