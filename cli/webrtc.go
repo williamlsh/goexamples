@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"sync"
 
 	"github.com/pion/mediadevices"
@@ -75,11 +76,11 @@ func createPeerConnection(signalPeer SignalFunc, answerCh <-chan *webrtc.Session
 			return
 		}
 
-		candidatesMux.Lock()
-		defer candidatesMux.Unlock()
-
 		if desc := peerConnection.RemoteDescription(); desc == nil {
+			candidatesMux.Lock()
 			pendingCandidates = append(pendingCandidates, c)
+			candidatesMux.Unlock()
+
 			return
 		}
 		if err := signalPeer(c.ToJSON(), "candidate"); err != nil {
@@ -89,6 +90,19 @@ func createPeerConnection(signalPeer SignalFunc, answerCh <-chan *webrtc.Session
 
 	peerConnection.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
 		log.Info().Str("state", connectionState.String()).Msg("connection state has changed")
+	})
+
+	// Set the handler for Peer connection state
+	// This will notify you when the peer has connected/disconnected
+	peerConnection.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
+		log.Info().Str("state", s.String()).Msg("peer connection state has changed")
+
+		if s == webrtc.PeerConnectionStateFailed {
+			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
+			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
+			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
+			os.Exit(0)
+		}
 	})
 
 	s, err := mediadevices.GetUserMedia(mediadevices.MediaStreamConstraints{
@@ -125,10 +139,12 @@ func createPeerConnection(signalPeer SignalFunc, answerCh <-chan *webrtc.Session
 	if err != nil {
 		panic(err)
 	}
+	log.Info().Msg("created offer")
 
 	if err = peerConnection.SetLocalDescription(offer); err != nil {
 		panic(err)
 	}
+	log.Info().Msg("set local description")
 
 	// Sends the offer.
 	if err := signalPeer(peerConnection.LocalDescription(), "offer"); err != nil {

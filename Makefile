@@ -1,10 +1,10 @@
 .PHONY: cli
 cli:
-	@go run ./cli
+	@go run -race ./cli
 
 .PHONY: server
 server:
-	@go run ./server
+	@go run -race ./server
 
 .PHONY: chore
 chore:

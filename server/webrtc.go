@@ -42,11 +42,6 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan *
 		log.Err(err).Msg("could not create new peer connection")
 		return err
 	}
-	defer func() {
-		if err := peerConnection.Close(); err != nil {
-			log.Err(err).Msg("could not close peerConnection")
-		}
-	}()
 
 	// Allow us to receive 1 audio track, and 1 video track
 	if _, err = peerConnection.AddTransceiverFromKind(webrtc.RTPCodecTypeAudio); err != nil {
@@ -97,11 +92,11 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan *
 			return
 		}
 
-		candidatesMux.Lock()
-		defer candidatesMux.Unlock()
-
 		if desc := peerConnection.RemoteDescription(); desc == nil {
+			candidatesMux.Lock()
 			pendingCandidates = append(pendingCandidates, c)
+			candidatesMux.Unlock()
+
 			return
 		}
 		// Send candidate.
@@ -203,11 +198,13 @@ func createPeerConnection(offer *webrtc.SessionDescription, candidateCh <-chan *
 	if err != nil {
 		return err
 	}
+	log.Info().Msg("created answer")
 
 	// Sets the LocalDescription
 	if err = peerConnection.SetLocalDescription(answer); err != nil {
 		return err
 	}
+	log.Info().Msg("set local description")
 
 	// Sends the answer back.
 	if err := signalPeer(&answer, "answer"); err != nil {
